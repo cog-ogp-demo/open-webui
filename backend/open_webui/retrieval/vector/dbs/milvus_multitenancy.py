@@ -4,7 +4,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from open_webui.config import (
     MILVUS_COLLECTION_PREFIX,
@@ -86,7 +86,7 @@ class MilvusClient(VectorDBBase):
             self.HASH_BASED_COLLECTION,
         ]
 
-    def _get_collection_and_resource_id(self, collection_name: str) -> Tuple[str, str]:
+    def _get_collection_and_resource_id(self, collection_name: str) -> tuple[str, str]:
         """
         Maps the traditional collection name to multi-tenant collection and resource ID.
 
@@ -160,7 +160,7 @@ class MilvusClient(VectorDBBase):
         res = collection.query(expr=f"{RESOURCE_ID_FIELD} == '{resource_id}'", limit=1)
         return len(res) > 0
 
-    def upsert(self, collection_name: str, items: List[VectorItem]):
+    def upsert(self, collection_name: str, items: list[VectorItem]):
         if not items:
             return
         mt_collection, resource_id = self._get_collection_and_resource_id(collection_name)
@@ -184,10 +184,10 @@ class MilvusClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: List[List[float]],
-        filter: Optional[Dict] = None,
+        vectors: list[list[float]],
+        filter: dict | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         if not vectors:
             return None
 
@@ -227,8 +227,8 @@ class MilvusClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: list[str] | None = None,
+        filter: dict[str, Any] | None = None,
     ):
         mt_collection, resource_id = self._get_collection_and_resource_id(collection_name)
         _validate_resource_id(resource_id)
@@ -264,7 +264,7 @@ class MilvusClient(VectorDBBase):
         collection = Collection(mt_collection)
         collection.delete(f"{RESOURCE_ID_FIELD} == '{resource_id}'")
 
-    def query(self, collection_name: str, filter: Dict[str, Any], limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: dict[str, Any], limit: int | None = None) -> GetResult | None:
         mt_collection, resource_id = self._get_collection_and_resource_id(collection_name)
         _validate_resource_id(resource_id)
         if not utility.has_collection(mt_collection):
@@ -306,8 +306,8 @@ class MilvusClient(VectorDBBase):
 
         return GetResult(ids=[ids], documents=[documents], metadatas=[metadatas])
 
-    def get(self, collection_name: str) -> Optional[GetResult]:
+    def get(self, collection_name: str) -> GetResult | None:
         return self.query(collection_name, filter={}, limit=None)
 
-    def insert(self, collection_name: str, items: List[VectorItem]):
+    def insert(self, collection_name: str, items: list[VectorItem]):
         return self.upsert(collection_name, items)

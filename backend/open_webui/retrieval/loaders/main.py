@@ -14,7 +14,6 @@ from langchain_community.document_loaders import (
     OutlookMessageLoader,
     PyPDFLoader,
     TextLoader,
-    YoutubeLoader,
 )
 from langchain_core.documents import Document
 from open_webui.env import AIOHTTP_CLIENT_SESSION_SSL, GLOBAL_LOG_LEVEL, REQUESTS_VERIFY

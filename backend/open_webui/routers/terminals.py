@@ -224,7 +224,7 @@ async def _resolve_authenticated_connection(ws: WebSocket, server_id: str):
         if user is None:
             await ws.close(code=4001, reason='User not found')
             return None
-    except (asyncio.TimeoutError, json.JSONDecodeError):
+    except (TimeoutError, json.JSONDecodeError):
         await ws.close(code=4001, reason='Auth timeout or invalid payload')
         return None
     except Exception:

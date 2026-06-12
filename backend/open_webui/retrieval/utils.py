@@ -6,9 +6,8 @@ import logging
 import os
 import re
 import time
+from collections.abc import Awaitable
 from concurrent.futures import ThreadPoolExecutor
-from typing import Awaitable, Optional, Union
-from urllib.parse import quote
 
 import aiohttp
 import requests
@@ -23,7 +22,6 @@ from open_webui.config import (
     RAG_EMBEDDING_CONTENT_PREFIX,
     RAG_EMBEDDING_PREFIX_FIELD_NAME,
     RAG_EMBEDDING_QUERY_PREFIX,
-    VECTOR_DB,
 )
 from open_webui.env import (
     AIOHTTP_CLIENT_ALLOW_REDIRECTS,
@@ -1009,8 +1007,8 @@ def get_embedding_function(
 async def generate_embeddings(
     engine: str,
     model: str,
-    text: Union[str, list[str]],
-    prefix: Union[str, None] = None,
+    text: str | list[str],
+    prefix: str | None = None,
     **kwargs,
 ):
     url = kwargs.get('url', '')
@@ -1487,10 +1485,10 @@ def get_model_path(model: str, update_model: bool = False):
 
 
 import operator
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from langchain_core.callbacks import Callbacks
-from langchain_core.documents import BaseDocumentCompressor, Document
+from langchain_core.documents import BaseDocumentCompressor
 
 
 class RerankCompressor(BaseDocumentCompressor):

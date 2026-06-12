@@ -8,9 +8,7 @@ import logging
 import mimetypes
 import re
 import uuid
-from pathlib import Path
-from typing import Optional
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
 import aiohttp
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
@@ -22,7 +20,6 @@ from open_webui.config import (
 )
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import AIOHTTP_CLIENT_ALLOW_REDIRECTS, AIOHTTP_CLIENT_SESSION_SSL, ENABLE_FORWARD_USER_INFO_HEADERS
-from open_webui.internal.db import get_async_session
 from open_webui.models.chats import Chats
 from open_webui.retrieval.web.utils import validate_url
 from open_webui.routers.files import get_file_content_by_id, upload_file_handler
@@ -39,7 +36,6 @@ from open_webui.utils.images.comfyui import (
 )
 from open_webui.utils.session_pool import get_session
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
 
@@ -518,6 +514,7 @@ async def upload_image(request, image_data, content_type, metadata, user, db=Non
         metadata=metadata,
         process=False,
         user=user,
+        enforce_max_size=False,  # server-generated image, not a user upload
     )
 
     if file_item and file_item.id:

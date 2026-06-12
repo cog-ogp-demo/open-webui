@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
-from typing import Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -184,7 +181,7 @@ async def get_session_user_chat_usage_stats(
                             'created_at': chat.created_at,
                         }
                     )
-                except Exception as e:
+                except Exception:
                     pass
 
         return ChatUsageStatsListResponse(items=chat_stats, total=total)

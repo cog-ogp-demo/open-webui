@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from open_webui.config import (
     PGVECTOR_CREATE_EXTENSION,
@@ -167,7 +167,7 @@ class PgvectorClient(VectorDBBase):
             raise
 
     @staticmethod
-    def _extract_index_method(index_def: Optional[str]) -> Optional[str]:
+    def _extract_index_method(index_def: str | None) -> str | None:
         if not index_def:
             return None
         try:
@@ -176,7 +176,7 @@ class PgvectorClient(VectorDBBase):
         except (IndexError, AttributeError):
             return None
 
-    def _vector_index_configuration(self) -> Tuple[str, str]:
+    def _vector_index_configuration(self) -> tuple[str, str]:
         if PGVECTOR_INDEX_METHOD:
             index_method = PGVECTOR_INDEX_METHOD
             log.info(
@@ -270,7 +270,7 @@ class PgvectorClient(VectorDBBase):
         else:
             raise Exception("The 'vector' column does not exist in the 'document_chunk' table.")
 
-    def adjust_vector_length(self, vector: List[float]) -> List[float]:
+    def adjust_vector_length(self, vector: list[float]) -> list[float]:
         # Adjust vector to have length VECTOR_LENGTH
         current_length = len(vector)
         if current_length < VECTOR_LENGTH:
@@ -281,7 +281,7 @@ class PgvectorClient(VectorDBBase):
             vector = vector[:VECTOR_LENGTH]
         return vector
 
-    def insert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def insert(self, collection_name: str, items: list[VectorItem]) -> None:
         try:
             if PGVECTOR_PGCRYPTO:
                 for item in items:
@@ -334,7 +334,7 @@ class PgvectorClient(VectorDBBase):
             log.exception(f'Error during insert: {e}')
             raise
 
-    def upsert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def upsert(self, collection_name: str, items: list[VectorItem]) -> None:
         try:
             if PGVECTOR_PGCRYPTO:
                 for item in items:
@@ -396,10 +396,10 @@ class PgvectorClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: List[List[float]],
-        filter: Optional[Dict[str, Any]] = None,
+        vectors: list[list[float]],
+        filter: dict[str, Any] | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         try:
             if not vectors:
                 return None
@@ -469,7 +469,7 @@ class PgvectorClient(VectorDBBase):
             subq = (
                 select(*result_fields)
                 .where(*where_clauses)
-                .order_by((DocumentChunk.vector.cosine_distance(query_vectors.c.q_vector)))
+                .order_by(DocumentChunk.vector.cosine_distance(query_vectors.c.q_vector))
             )
             if limit is not None:
                 subq = subq.limit(limit)
@@ -521,7 +521,7 @@ class PgvectorClient(VectorDBBase):
             log.exception(f'Error during search: {e}')
             return None
 
-    def query(self, collection_name: str, filter: Dict[str, Any], limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: dict[str, Any], limit: int | None = None) -> GetResult | None:
         try:
             if PGVECTOR_PGCRYPTO:
                 # Build where clause for vmetadata filter
@@ -569,7 +569,7 @@ class PgvectorClient(VectorDBBase):
             log.exception(f'Error during query: {e}')
             return None
 
-    def get(self, collection_name: str, limit: Optional[int] = None) -> Optional[GetResult]:
+    def get(self, collection_name: str, limit: int | None = None) -> GetResult | None:
         try:
             if PGVECTOR_PGCRYPTO:
                 stmt = select(
@@ -607,8 +607,8 @@ class PgvectorClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: list[str] | None = None,
+        filter: dict[str, Any] | None = None,
     ) -> None:
         try:
             if PGVECTOR_PGCRYPTO:

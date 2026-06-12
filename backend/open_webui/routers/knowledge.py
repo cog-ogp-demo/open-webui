@@ -4,7 +4,6 @@ import asyncio
 import io
 import logging
 import zipfile
-from typing import List, Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -13,10 +12,9 @@ from open_webui.config import BYPASS_ADMIN_ACCESS_CONTROL
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.internal.db import get_async_session
 from open_webui.models.access_grants import AccessGrants
-from open_webui.models.files import FileMetadataResponse, FileModel, FileModelResponse, Files
+from open_webui.models.files import FileMetadataResponse, Files
 from open_webui.models.groups import Groups
 from open_webui.models.knowledge import (
-    KnowledgeDirectoryForm,
     KnowledgeDirectoryModel,
     KnowledgeFileListResponse,
     KnowledgeForm,
@@ -345,7 +343,7 @@ async def reindex_knowledge_files(
             for failed in failed_files:
                 log.warning(f'File ID: {failed["file_id"]}, Error: {failed["error"]}')
 
-    log.info(f'Reindexing completed.')
+    log.info('Reindexing completed.')
     return True
 
 
@@ -693,7 +691,7 @@ async def get_knowledge_files_by_id(
 
 class KnowledgeFileIdForm(BaseModel):
     file_id: str
-    directory_id: Optional[str] = None
+    directory_id: str | None = None
 
 
 @router.post('/{id}/file/add', response_model=KnowledgeFilesResponse | None)
@@ -1419,17 +1417,17 @@ async def export_knowledge_by_id(id: str, user=Depends(get_admin_user), db: Asyn
 
 class KnowledgeDirectoryCreateForm(BaseModel):
     name: str
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
 
 
 class KnowledgeDirectoryUpdateForm(BaseModel):
-    name: Optional[str] = None
-    parent_id: Optional[str] = '__unset__'
+    name: str | None = None
+    parent_id: str | None = '__unset__'
 
 
 class KnowledgeFileMoveForm(BaseModel):
     file_id: str
-    directory_id: Optional[str] = None
+    directory_id: str | None = None
 
 
 async def _verify_knowledge_write_access(id: str, user, db: AsyncSession):

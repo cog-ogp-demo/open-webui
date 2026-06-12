@@ -1,26 +1,19 @@
 import ast
 import asyncio
-import base64
 import copy
 import html
-import inspect
 import json
 import logging
-import os
 import random
 import re
 import sys
 import textwrap
 import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional
 from uuid import uuid4
 
-from aiocache import cached
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from open_webui.config import (
-    CACHE_DIR,
     CODE_INTERPRETER_BLOCKED_MODULES,
     CODE_INTERPRETER_PYODIDE_PROMPT,
     DEFAULT_CODE_INTERPRETER_PROMPT,
@@ -29,7 +22,6 @@ from open_webui.config import (
 )
 from open_webui.constants import TASKS
 from open_webui.env import (
-    BYPASS_MODEL_ACCESS_CONTROL,
     CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS,
     CHAT_RESPONSE_STREAM_DELTA_CHUNK_SIZE,
     ENABLE_CHAT_RESPONSE_BASE64_IMAGE_URL_CONVERSION,
@@ -42,8 +34,6 @@ from open_webui.env import (
 from open_webui.models.chats import Chats
 from open_webui.models.folders import Folders
 from open_webui.models.functions import Functions
-from open_webui.models.models import Models
-from open_webui.models.oauth_sessions import OAuthSessions
 from open_webui.models.users import UserModel, Users
 from open_webui.retrieval.utils import get_sources_from_items
 from open_webui.routers.images import (
@@ -86,7 +76,6 @@ from open_webui.utils.filter import (
     get_sorted_filter_ids,
     process_filter_functions,
 )
-
 from open_webui.utils.mcp.client import MCPClient
 from open_webui.utils.misc import (
     add_or_update_system_message,
@@ -94,7 +83,6 @@ from open_webui.utils.misc import (
     convert_logit_bias_input_to_json,
     convert_output_to_messages,
     deep_update,
-    extract_urls,
     get_content_from_message,
     get_last_assistant_message,
     get_last_user_message,
@@ -103,13 +91,11 @@ from open_webui.utils.misc import (
     get_system_message,
     is_string_allowed,
     merge_system_messages,
-    prepend_to_first_user_message_content,
     replace_system_message_content,
     set_last_user_message_content,
     strip_empty_content_blocks,
 )
 from open_webui.utils.payload import apply_system_prompt_to_body
-from open_webui.utils.plugin import load_function_module_by_id
 from open_webui.utils.response import normalize_usage
 from open_webui.utils.sanitize import sanitize_code
 from open_webui.utils.task import (
@@ -125,7 +111,7 @@ from open_webui.utils.tools import (
     get_updated_tool_function,
 )
 from open_webui.utils.webhook import post_webhook
-from starlette.responses import JSONResponse, Response, StreamingResponse
+from starlette.responses import JSONResponse, StreamingResponse
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -1246,7 +1232,7 @@ async def terminal_event_handler(
 async def chat_completion_tools_handler(
     request: Request, body: dict, extra_params: dict, user: UserModel, models, tools
 ) -> tuple[dict, dict]:
-    async def get_content_from_response(response) -> Optional[str]:
+    async def get_content_from_response(response) -> str | None:
         content = None
         if hasattr(response, 'body_iterator'):
             async for chunk in response.body_iterator:
@@ -1545,7 +1531,7 @@ async def chat_web_search_handler(request: Request, form_data: dict, extra_param
             response = response[bracket_start:bracket_end]
             queries = json.loads(response)
             queries = queries.get('queries', [])
-        except Exception as e:
+        except Exception:
             queries = [response]
 
         if ENABLE_QUERIES_CACHE:
@@ -1842,7 +1828,7 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
                 {
                     'type': 'status',
                     'data': {
-                        'description': f'An error occurred while generating an image',
+                        'description': 'An error occurred while generating an image',
                         'done': True,
                     },
                 }
@@ -1885,7 +1871,7 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
                     response = response[bracket_start:bracket_end]
                     response = json.loads(response)
                     prompt = response.get('prompt', [])
-                except Exception as e:
+                except Exception:
                     prompt = user_message
 
             except Exception as e:
@@ -1940,7 +1926,7 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
                 {
                     'type': 'status',
                     'data': {
-                        'description': f'An error occurred while generating an image',
+                        'description': 'An error occurred while generating an image',
                         'done': True,
                     },
                 }
@@ -1988,7 +1974,7 @@ async def chat_completion_files_handler(
 
                     queries_response = queries_response[bracket_start:bracket_end]
                     queries_response = json.loads(queries_response)
-                except Exception as e:
+                except Exception:
                     queries_response = {'queries': [queries_response]}
 
                 queries = queries_response.get('queries', [])
@@ -2156,7 +2142,7 @@ async def convert_url_images_to_base64(form_data, user=None):
     return form_data
 
 
-async def load_messages_from_db(chat_id: str, message_id: str) -> Optional[list[dict]]:
+async def load_messages_from_db(chat_id: str, message_id: str) -> list[dict] | None:
     """
     Load the message chain from DB up to message_id,
     keeping only LLM-relevant fields (role, content, output).
@@ -3166,7 +3152,7 @@ async def background_tasks_handler(ctx):
                                 },
                             )
 
-                    except Exception as e:
+                    except Exception:
                         pass
 
             if not metadata.get('chat_id', '').startswith('local:') and not metadata.get('chat_id', '').startswith(
@@ -3207,7 +3193,7 @@ async def background_tasks_handler(ctx):
 
                             try:
                                 title = json.loads(title_string).get('title', user_message)
-                            except Exception as e:
+                            except Exception:
                                 title = ''
 
                             if not title:
@@ -3267,7 +3253,7 @@ async def background_tasks_handler(ctx):
                                     'data': tags,
                                 }
                             )
-                        except Exception as e:
+                        except Exception:
                             pass
 
 
@@ -3837,7 +3823,7 @@ async def streaming_chat_response_handler(response, ctx):
             try:
                 if form_data['messages'][-1]['role'] == 'assistant':
                     last_assistant_message = get_last_assistant_message(form_data['messages'])
-            except Exception as e:
+            except Exception:
                 pass
 
             content = (

@@ -8,16 +8,12 @@ import random
 import re
 import time
 from datetime import datetime
-from typing import Optional, Union
 from urllib.parse import urlparse
 
 import aiohttp
 from aiocache import cached
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, validator
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from open_webui.config import UPLOAD_DIR
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import (
@@ -44,6 +40,8 @@ from open_webui.utils.payload import (
     apply_system_prompt_to_body,
 )
 from open_webui.utils.session_pool import cleanup_response, get_session, stream_wrapper
+from pydantic import BaseModel, ConfigDict, validator
+from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +89,7 @@ async def send_request(
     url: str,
     method: str = 'POST',
     *,
-    payload: Union[str, bytes | None] = None,
+    payload: str | (bytes | None) = None,
     key: str | None = None,
     user: UserModel = None,
     stream: bool = False,
@@ -757,7 +755,7 @@ class GenerateEmbedForm(BaseModel):
     input: list[str] | str
     truncate: bool | None = None
     options: dict | None = None
-    keep_alive: Union[int, str | None] = None
+    keep_alive: int | (str | None) = None
     model_config = ConfigDict(extra='allow')
 
 
@@ -812,7 +810,7 @@ class GenerateEmbeddingsForm(BaseModel):
     model: str
     prompt: str
     options: dict | None = None
-    keep_alive: Union[int, str | None] = None
+    keep_alive: int | (str | None) = None
 
 
 @router.post('/api/embeddings')
@@ -867,14 +865,14 @@ class GenerateCompletionForm(BaseModel):
     prompt: str | None = None
     suffix: str | None = None
     images: list[str | None] = None
-    format: Union[dict, str | None] = None
+    format: dict | (str | None) = None
     options: dict | None = None
     system: str | None = None
     template: str | None = None
     context: list[int | None] = None
     stream: bool | None = True
     raw: bool | None = None
-    keep_alive: Union[int, str | None] = None
+    keep_alive: int | (str | None) = None
 
 
 @router.post('/api/generate')
@@ -941,11 +939,11 @@ class GenerateChatCompletionForm(BaseModel):
 
     model: str
     messages: list[ChatMessage]
-    format: Union[dict, str | None] = None
+    format: dict | (str | None) = None
     options: dict | None = None
     template: str | None = None
     stream: bool | None = True
-    keep_alive: Union[int, str | None] = None
+    keep_alive: int | (str | None) = None
     tools: list[dict | None] = None
     model_config = ConfigDict(extra='allow')
 
@@ -1064,7 +1062,7 @@ class OpenAIChatMessage(BaseModel):
     """A single message in an OpenAI-compatible chat request."""
 
     role: str
-    content: Union[str | None, list[OpenAIChatMessageContent]]
+    content: str | None | list[OpenAIChatMessageContent]
     model_config = ConfigDict(extra='allow')
 
 

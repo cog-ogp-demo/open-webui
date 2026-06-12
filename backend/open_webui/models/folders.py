@@ -2,11 +2,10 @@ import logging
 import re
 import time
 import uuid
-from typing import Optional
 
-from open_webui.internal.db import Base, JSONField, get_async_db_context
+from open_webui.internal.db import Base, get_async_db_context
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import JSON, BigInteger, Boolean, Column, Text, delete, func, select
+from sqlalchemy import JSON, BigInteger, Boolean, Column, Text, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
@@ -35,12 +34,12 @@ class Folder(Base):
 
 class FolderModel(BaseModel):
     id: str
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
     user_id: str
     name: str
-    items: Optional[dict] = None
-    meta: Optional[dict] = None
-    data: Optional[dict] = None
+    items: dict | None = None
+    meta: dict | None = None
+    data: dict | None = None
     is_expanded: bool = False
     created_at: int
     updated_at: int
@@ -49,14 +48,14 @@ class FolderModel(BaseModel):
 
 
 class FolderMetadataResponse(BaseModel):
-    icon: Optional[str] = None
+    icon: str | None = None
 
 
 class FolderNameIdResponse(BaseModel):
     id: str
     name: str
-    meta: Optional[FolderMetadataResponse] = None
-    parent_id: Optional[str] = None
+    meta: FolderMetadataResponse | None = None
+    parent_id: str | None = None
     is_expanded: bool = False
     created_at: int
     updated_at: int
@@ -69,16 +68,16 @@ class FolderNameIdResponse(BaseModel):
 
 class FolderForm(BaseModel):
     name: str
-    data: Optional[dict] = None
-    meta: Optional[dict] = None
-    parent_id: Optional[str] = None
+    data: dict | None = None
+    meta: dict | None = None
+    parent_id: str | None = None
     model_config = ConfigDict(extra='forbid')
 
 
 class FolderUpdateForm(BaseModel):
-    name: Optional[str] = None
-    data: Optional[dict] = None
-    meta: Optional[dict] = None
+    name: str | None = None
+    data: dict | None = None
+    meta: dict | None = None
     model_config = ConfigDict(extra='forbid')
 
 
@@ -87,9 +86,9 @@ class FolderTable:
         self,
         user_id: str,
         form_data: FolderForm,
-        parent_id: Optional[str] = None,
-        db: Optional[AsyncSession] = None,
-    ) -> Optional[FolderModel]:
+        parent_id: str | None = None,
+        db: AsyncSession | None = None,
+    ) -> FolderModel | None:
         async with get_async_db_context(db) as db:
             id = str(uuid.uuid4())
             folder = FolderModel(
@@ -116,8 +115,8 @@ class FolderTable:
                 return None
 
     async def get_folder_by_id_and_user_id(
-        self, id: str, user_id: str, db: Optional[AsyncSession] = None
-    ) -> Optional[FolderModel]:
+        self, id: str, user_id: str, db: AsyncSession | None = None
+    ) -> FolderModel | None:
         try:
             async with get_async_db_context(db) as db:
                 result = await db.execute(select(Folder).filter_by(id=id, user_id=user_id))
@@ -131,8 +130,8 @@ class FolderTable:
             return None
 
     async def get_children_folders_by_id_and_user_id(
-        self, id: str, user_id: str, db: Optional[AsyncSession] = None
-    ) -> Optional[list[FolderModel]]:
+        self, id: str, user_id: str, db: AsyncSession | None = None
+    ) -> list[FolderModel] | None:
         try:
             async with get_async_db_context(db) as db:
                 folders = []
@@ -153,18 +152,18 @@ class FolderTable:
         except Exception:
             return None
 
-    async def get_folders_by_user_id(self, user_id: str, db: Optional[AsyncSession] = None) -> list[FolderModel]:
+    async def get_folders_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> list[FolderModel]:
         async with get_async_db_context(db) as db:
             result = await db.execute(select(Folder).filter_by(user_id=user_id))
             return [FolderModel.model_validate(folder) for folder in result.scalars().all()]
 
     async def get_folder_by_parent_id_and_user_id_and_name(
         self,
-        parent_id: Optional[str],
+        parent_id: str | None,
         user_id: str,
         name: str,
-        db: Optional[AsyncSession] = None,
-    ) -> Optional[FolderModel]:
+        db: AsyncSession | None = None,
+    ) -> FolderModel | None:
         try:
             async with get_async_db_context(db) as db:
                 # Check if folder exists
@@ -182,7 +181,7 @@ class FolderTable:
             return None
 
     async def get_folders_by_parent_id_and_user_id(
-        self, parent_id: Optional[str], user_id: str, db: Optional[AsyncSession] = None
+        self, parent_id: str | None, user_id: str, db: AsyncSession | None = None
     ) -> list[FolderModel]:
         async with get_async_db_context(db) as db:
             result = await db.execute(select(Folder).filter_by(parent_id=parent_id, user_id=user_id))
@@ -193,8 +192,8 @@ class FolderTable:
         id: str,
         user_id: str,
         parent_id: str,
-        db: Optional[AsyncSession] = None,
-    ) -> Optional[FolderModel]:
+        db: AsyncSession | None = None,
+    ) -> FolderModel | None:
         try:
             async with get_async_db_context(db) as db:
                 result = await db.execute(select(Folder).filter_by(id=id, user_id=user_id))
@@ -218,8 +217,8 @@ class FolderTable:
         id: str,
         user_id: str,
         form_data: FolderUpdateForm,
-        db: Optional[AsyncSession] = None,
-    ) -> Optional[FolderModel]:
+        db: AsyncSession | None = None,
+    ) -> FolderModel | None:
         try:
             async with get_async_db_context(db) as db:
                 result = await db.execute(select(Folder).filter_by(id=id, user_id=user_id))
@@ -264,8 +263,8 @@ class FolderTable:
             return
 
     async def update_folder_is_expanded_by_id_and_user_id(
-        self, id: str, user_id: str, is_expanded: bool, db: Optional[AsyncSession] = None
-    ) -> Optional[FolderModel]:
+        self, id: str, user_id: str, is_expanded: bool, db: AsyncSession | None = None
+    ) -> FolderModel | None:
         try:
             async with get_async_db_context(db) as db:
                 result = await db.execute(select(Folder).filter_by(id=id, user_id=user_id))
@@ -284,9 +283,7 @@ class FolderTable:
             log.error(f'update_folder: {e}')
             return
 
-    async def delete_folder_by_id_and_user_id(
-        self, id: str, user_id: str, db: Optional[AsyncSession] = None
-    ) -> list[str]:
+    async def delete_folder_by_id_and_user_id(self, id: str, user_id: str, db: AsyncSession | None = None) -> list[str]:
         try:
             folder_ids = []
             async with get_async_db_context(db) as db:
@@ -323,7 +320,7 @@ class FolderTable:
         return name.strip().lower()
 
     async def search_folders_by_names(
-        self, user_id: str, queries: list[str], db: Optional[AsyncSession] = None
+        self, user_id: str, queries: list[str], db: AsyncSession | None = None
     ) -> list[FolderModel]:
         """
         Search for folders for a user where the name matches any of the queries, treating _ and space as equivalent, case-insensitive.
@@ -354,7 +351,7 @@ class FolderTable:
             return results
 
     async def search_folders_by_name_contains(
-        self, user_id: str, query: str, db: Optional[AsyncSession] = None
+        self, user_id: str, query: str, db: AsyncSession | None = None
     ) -> list[FolderModel]:
         """
         Partial match: normalized name contains (as substring) the normalized query.

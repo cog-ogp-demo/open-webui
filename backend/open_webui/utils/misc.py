@@ -8,9 +8,9 @@ import re
 import threading
 import time
 import uuid
+from collections.abc import Sequence
 from datetime import timedelta
 from pathlib import Path
-from typing import Callable, Optional, Sequence, Union
 
 import aiohttp
 import mimeparse
@@ -44,7 +44,7 @@ def get_allow_block_lists(filter_list):
     return allow_list, block_list
 
 
-def is_string_allowed(string: Union[str, Sequence[str]], filter_list: list[str | None] = None) -> bool:
+def is_string_allowed(string: str | Sequence[str], filter_list: list[str | None] = None) -> bool:
     """
     Checks if a string is allowed based on the provided filter list.
     :param string: The string or sequence of strings to check (e.g., domain or hostname).

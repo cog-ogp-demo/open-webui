@@ -1,19 +1,17 @@
 import base64
-import copy
 import fnmatch
 import hashlib
 import json
 import logging
 import mimetypes
 import re
-import secrets
 import sys
 import time
 import urllib
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Literal, Optional
+from typing import Literal
 
 import aiohttp
 from authlib.integrations.starlette_client import OAuth
@@ -95,15 +93,15 @@ class OAuthClientMetadata(MCPOAuthClientMetadata):
 
 
 class OAuthClientInformationFull(OAuthClientMetadata):
-    issuer: Optional[str] = None  # URL of the OAuth server that issued this client
-    resource: Optional[str] = None  # RFC 8707 resource indicator for JWT audience
+    issuer: str | None = None  # URL of the OAuth server that issued this client
+    resource: str | None = None  # RFC 8707 resource indicator for JWT audience
 
     client_id: str
     client_secret: str | None = None
     client_id_issued_at: int | None = None
     client_secret_expires_at: int | None = None
 
-    server_metadata: Optional[OAuthMetadata] = None  # Fetched from the OAuth server
+    server_metadata: OAuthMetadata | None = None  # Fetched from the OAuth server
 
 
 from open_webui.env import GLOBAL_LOG_LEVEL
@@ -417,7 +415,7 @@ async def get_oauth_client_info_with_dynamic_client_registration(
     request,
     client_id: str,
     oauth_server_url: str,
-    oauth_server_key: Optional[str] = None,
+    oauth_server_key: str | None = None,
 ) -> OAuthClientInformationFull:
     try:
         oauth_server_metadata = None
@@ -511,7 +509,7 @@ async def get_oauth_client_info_with_dynamic_client_registration(
                         log.error(
                             f'Dynamic client registration failed at {registration_url}: {oauth_client_registration_response.status} - {error_text}'
                         )
-                    except Exception as e:
+                    except Exception:
                         pass
 
                     log.error(f'Error parsing client registration response: {e}')

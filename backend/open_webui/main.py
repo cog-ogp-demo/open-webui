@@ -1,42 +1,30 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
 import json
 import logging
 import mimetypes
 import os
-import random
-import re
-import shutil
 import sys
 import time
 from contextlib import asynccontextmanager
-from typing import Optional
-from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import uuid4
 
 import aiohttp
 import anyio.to_thread
-from aiocache import cached
 from fastapi import (
-    BackgroundTasks,
     Depends,
     FastAPI,
-    File,
-    Form,
     HTTPException,
     Request,
-    UploadFile,
     applications,
     status,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from redis import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import Headers
@@ -136,7 +124,6 @@ from open_webui.config import (
     DATALAB_MARKER_USE_LLM,
     DDGS_BACKEND,
     DEEPGRAM_API_KEY,
-    DEFAULT_ARENA_MODEL,
     DEFAULT_GROUP_ID,
     DEFAULT_LOCALE,
     DEFAULT_MODEL_METADATA,
@@ -144,7 +131,6 @@ from open_webui.config import (
     DEFAULT_MODELS,
     DEFAULT_PINNED_MODELS,
     DEFAULT_PROMPT_SUGGESTIONS,
-    DEFAULT_RAG_TEMPLATE,
     DEFAULT_USER_ROLE,
     DOCLING_API_KEY,
     DOCLING_PARAMS,
@@ -200,7 +186,6 @@ from open_webui.config import (
     ENABLE_PASSWORD_CHANGE_FORM,
     ENABLE_RAG_HYBRID_SEARCH,
     ENABLE_RAG_HYBRID_SEARCH_ENRICHED_TEXTS,
-    ENABLE_RAG_LOCAL_WEB_FETCH,
     ENABLE_RETRIEVAL_QUERY_GENERATION,
     ENABLE_SEARCH_QUERY_GENERATION,
     ENABLE_SIGNUP,
@@ -277,6 +262,8 @@ from open_webui.config import (
     LDAP_SERVER_PORT,
     LDAP_USE_TLS,
     LDAP_VALIDATE_CERT,
+    LINKUP_API_KEY,
+    LINKUP_SEARCH_PARAMS,
     MINERU_API_KEY,
     MINERU_API_MODE,
     MINERU_API_TIMEOUT,
@@ -327,8 +314,6 @@ from open_webui.config import (
     RAG_EMBEDDING_CONCURRENT_REQUESTS,
     RAG_EMBEDDING_ENGINE,
     RAG_EMBEDDING_MODEL,
-    RAG_EMBEDDING_MODEL_AUTO_UPDATE,
-    RAG_EMBEDDING_MODEL_TRUST_REMOTE_CODE,
     RAG_EXTERNAL_RERANKER_API_KEY,
     RAG_EXTERNAL_RERANKER_TIMEOUT,
     RAG_EXTERNAL_RERANKER_URL,
@@ -344,9 +329,6 @@ from open_webui.config import (
     RAG_RERANKING_BATCH_SIZE,
     RAG_RERANKING_ENGINE,
     RAG_RERANKING_MODEL,
-    RAG_RERANKING_MODEL_AUTO_UPDATE,
-    RAG_RERANKING_MODEL_TRUST_REMOTE_CODE,
-    # Retrieval
     RAG_TEMPLATE,
     RAG_TEXT_SPLITTER,
     RAG_TOP_K,
@@ -382,7 +364,6 @@ from open_webui.config import (
     # Tool Server Configs
     TOOL_SERVER_CONNECTIONS,
     TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE,
-    UPLOAD_DIR,
     USER_PERMISSIONS,
     VOICE_MODE_PROMPT_TEMPLATE,
     WEB_FETCH_MAX_CONTENT_LENGTH,
@@ -400,11 +381,7 @@ from open_webui.config import (
     WEBUI_BANNERS,
     WEBUI_NAME,
     WEBUI_URL,
-    WHISPER_LANGUAGE,
     WHISPER_MODEL,
-    WHISPER_MODEL_AUTO_UPDATE,
-    WHISPER_MODEL_DIR,
-    WHISPER_VAD_FILTER,
     YACY_PASSWORD,
     YACY_QUERY_URL,
     YACY_USERNAME,
@@ -412,13 +389,10 @@ from open_webui.config import (
     YANDEX_WEB_SEARCH_CONFIG,
     YANDEX_WEB_SEARCH_URL,
     YOUCOM_API_KEY,
-    LINKUP_API_KEY,
-    LINKUP_SEARCH_PARAMS,
     YOUTUBE_LOADER_LANGUAGE,
     YOUTUBE_LOADER_PROXY_URL,
     AppConfig,
     async_reset_config,
-    reset_config,
 )
 from open_webui.constants import ERROR_MESSAGES, TASKS
 from open_webui.env import (
@@ -469,14 +443,14 @@ from open_webui.env import (
     WEBUI_SESSION_COOKIE_SAME_SITE,
     WEBUI_SESSION_COOKIE_SECURE,
 )
-from open_webui.internal.db import ScopedSession, engine, get_async_session
+from open_webui.internal.db import engine, get_async_session
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.channels import Channels
 from open_webui.models.chats import ChatForm, Chats
 from open_webui.models.functions import Functions
 from open_webui.models.messages import Messages
 from open_webui.models.models import Models
-from open_webui.models.users import UserModel, Users
+from open_webui.models.users import Users
 from open_webui.routers import (
     analytics,
     audio,
@@ -583,7 +557,7 @@ from open_webui.utils.oauth import (
     resolve_oauth_client_info,
 )
 from open_webui.utils.plugin import install_tool_and_function_dependencies
-from open_webui.utils.redis import get_redis_client, get_redis_connection
+from open_webui.utils.redis import get_redis_client
 from open_webui.utils.security_headers import SecurityHeadersMiddleware
 from open_webui.utils.session_pool import get_session
 from open_webui.utils.tools import set_terminal_servers, set_tool_servers
@@ -2568,7 +2542,7 @@ async def get_app_version():
 @app.get('/api/version/updates')
 async def get_app_latest_release_version(user=Depends(get_verified_user)):
     if not ENABLE_VERSION_UPDATE_CHECK:
-        log.debug(f'Version update check is disabled, returning current version as latest version')
+        log.debug('Version update check is disabled, returning current version as latest version')
         return {'current': VERSION, 'latest': VERSION}
     try:
         timeout = aiohttp.ClientTimeout(total=1)
@@ -2656,7 +2630,7 @@ try:
         log.info('Using Redis for session')
     else:
         raise ValueError('No Redis URL provided')
-except Exception as e:
+except Exception:
     app.add_middleware(
         SessionMiddleware,
         secret_key=WEBUI_SECRET_KEY,
