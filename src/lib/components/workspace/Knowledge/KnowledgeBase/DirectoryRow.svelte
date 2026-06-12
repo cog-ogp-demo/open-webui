@@ -130,6 +130,11 @@
 							if (e.key === 'Enter') submitRename();
 							if (e.key === 'Escape') cancelRename();
 						}}
+						on:keyup={(e) => {
+							// Prevent the parent button from activating (and navigating into the
+							// directory) when typing a space while renaming.
+							if (e.key === ' ') e.preventDefault();
+						}}
 						on:blur={submitRename}
 						on:click={(e) => e.stopPropagation()}
 						autofocus
