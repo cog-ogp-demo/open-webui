@@ -38,16 +38,16 @@ You'll need a Bearer token from [open.lkcoffee.com/mcp](https://open.lkcoffee.co
 
 ### Available Tools (8)
 
-| Tool | Description |
-|------|-------------|
-| `queryShopList` | Find stores by location (longitude/latitude) |
-| `searchProductForMcp` | Search products by text query |
-| `switchProduct` | Change product attributes (size, sugar, etc.) |
-| `queryProductDetailInfo` | Get full product details |
-| `previewOrder` | Preview order with pricing and discounts |
-| `createOrder` | Place an order and get payment URL |
-| `queryOrderDetailInfo` | Check order status and pickup code |
-| `cancelOrder` | Cancel a pending order |
+| Tool                     | Description                                   |
+| ------------------------ | --------------------------------------------- |
+| `queryShopList`          | Find stores by location (longitude/latitude)  |
+| `searchProductForMcp`    | Search products by text query                 |
+| `switchProduct`          | Change product attributes (size, sugar, etc.) |
+| `queryProductDetailInfo` | Get full product details                      |
+| `previewOrder`           | Preview order with pricing and discounts      |
+| `createOrder`            | Place an order and get payment URL            |
+| `queryOrderDetailInfo`   | Check order status and pickup code            |
+| `cancelOrder`            | Cancel a pending order                        |
 
 ## Architecture
 
