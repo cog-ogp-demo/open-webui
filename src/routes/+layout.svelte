@@ -70,6 +70,7 @@
 	import AppSidebar from '$lib/components/app/AppSidebar.svelte';
 	import SyncStatsModal from '$lib/components/chat/Settings/SyncStatsModal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import PetCat from '$lib/components/common/PetCat.svelte';
 	import { getUserSettings } from '$lib/apis/users';
 	import dayjs from 'dayjs';
 	import { getChannels } from '$lib/apis/channels';
@@ -1193,6 +1194,8 @@
 	{:else}
 		<slot />
 	{/if}
+
+	<PetCat />
 {/if}
 
 {#if $config?.features.enable_community_sharing}
