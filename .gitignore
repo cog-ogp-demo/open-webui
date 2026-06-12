@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+
+# Next.js
+.next/
+out/
+
+# Build
+build
+dist
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+
+# Docker
+.localstack
+.pgdata
+
+# Logs
+*.log
+.logs
+
+# Coverage
+coverage
+
+# Misc
+.cache_ggshield
+.dccache
+next-env.d.ts
