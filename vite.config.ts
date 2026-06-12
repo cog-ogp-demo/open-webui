@@ -28,5 +28,16 @@ export default defineConfig({
 	},
 	esbuild: {
 		pure: process.env.ENV === 'dev' ? [] : ['console.log', 'console.debug', 'console.error']
+	},
+	test: {
+		environment: 'jsdom',
+		server: {
+			deps: {
+				inline: [/svelte/]
+			}
+		}
+	},
+	resolve: {
+		conditions: process.env.VITEST ? ['browser'] : []
 	}
 });
