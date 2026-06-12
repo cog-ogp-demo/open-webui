@@ -21,7 +21,7 @@
 		toggleChatPinnedStatusById
 	} from '$lib/apis/chats';
 	import { chats, folders, settings, theme, user } from '$lib/stores';
-	import { createMessagesList } from '$lib/utils';
+	import { createMessagesList, initMermaid, renderMermaidDiagram } from '$lib/utils';
 	import { downloadChatAsPDF } from '$lib/apis/utils';
 	import Download from '$lib/components/icons/Download.svelte';
 	import Folder from '$lib/components/icons/Folder.svelte';
@@ -116,6 +116,28 @@
 					clonedElement.querySelectorAll('.message-listitem').forEach((el) => {
 						el.style.contentVisibility = 'visible';
 					});
+
+					// Render Mermaid diagrams that haven't been rendered yet (async timing issue)
+					const mermaidBlocks = clonedElement.querySelectorAll('[data-lang="mermaid"]');
+					if (mermaidBlocks.length > 0) {
+						const mermaid = await initMermaid();
+						for (const block of mermaidBlocks) {
+							const code = block.getAttribute('data-code');
+							if (code) {
+								try {
+									const svg = await renderMermaidDiagram(mermaid, code);
+									if (svg) {
+										const inner = block.querySelector('div');
+										if (inner) {
+											inner.innerHTML = svg;
+										}
+									}
+								} catch (e) {
+									console.warn('Failed to render mermaid for PDF:', e);
+								}
+							}
+						}
+					}
 
 					// Let the browser compute layout for the cloned element
 					await new Promise((r) => requestAnimationFrame(r));
