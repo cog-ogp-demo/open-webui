@@ -432,7 +432,10 @@
 	});
 </script>
 
-<div>
+<div
+	data-lang={['mermaid', 'vega', 'vega-lite'].includes(lang) ? lang : undefined}
+	data-code={['mermaid', 'vega', 'vega-lite'].includes(lang) ? code : undefined}
+>
 	<div
 		class="relative {className} flex flex-col rounded-2xl border border-gray-100/30 dark:border-gray-850/30 my-0.5"
 		dir="ltr"
