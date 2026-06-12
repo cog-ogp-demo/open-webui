@@ -138,8 +138,8 @@
 		}
 
 		// Slowly get hungry / bored
-		fullness = clamp(fullness - dt * 0.0006, 0, 100);
-		happiness = clamp(happiness - dt * 0.0004, 0, 100);
+		fullness = clamp(fullness - dt * 0.00006, 0, 100);
+		happiness = clamp(happiness - dt * 0.00004, 0, 100);
 
 		rafId = requestAnimationFrame(tick);
 	};
@@ -170,6 +170,7 @@
 
 	const feedCat = () => {
 		food = { x: clamp(x + direction * 160 + CAT_WIDTH / 2, 40, viewportWidth - 40) };
+		if (state === 'sleeping') setState('idle');
 		showMenu = false;
 	};
 
@@ -186,6 +187,7 @@
 				color: BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)]
 			}
 		];
+		if (state === 'sleeping') setState('idle');
 		showMenu = false;
 	};
 
