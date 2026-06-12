@@ -123,6 +123,7 @@
 								bind:value={editName}
 								class="text-sm w-full bg-transparent border-none outline-hidden"
 								on:keydown={(e) => {
+									e.stopPropagation();
 									if (e.key === 'Enter') submitRename();
 									if (e.key === 'Escape') cancelRename();
 								}}
