@@ -108,9 +108,11 @@
 				class="relative flex items-center gap-1 rounded-xl p-2 text-left flex-1 justify-between"
 				type="button"
 				on:click={() => {
+					if (editingFileId === (file?.id ?? file?.tempId)) return;
 					onClick(file?.id ?? file?.tempId);
 				}}
 				on:dblclick={() => {
+					if (editingFileId === (file?.id ?? file?.tempId)) return;
 					if (knowledge?.write_access) startRename(file);
 				}}
 			>
