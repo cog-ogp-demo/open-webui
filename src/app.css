@@ -141,7 +141,7 @@ li p {
 
 ::-webkit-scrollbar-thumb {
 	--tw-border-opacity: 1;
-	background-color: rgba(215, 215, 215, 0.6);
+	background-color: rgba(170, 170, 170, 0.7);
 	border-color: rgba(255, 255, 255, var(--tw-border-opacity));
 	border-radius: 9999px;
 	border-width: 1px;
@@ -149,18 +149,27 @@ li p {
 
 /* Dark theme scrollbar styles */
 .dark ::-webkit-scrollbar-thumb {
-	background-color: rgba(67, 67, 67, 0.6); /* Darker color for dark theme */
+	background-color: rgba(110, 110, 110, 0.7);
 	border-color: rgba(0, 0, 0, var(--tw-border-opacity));
 }
 
 ::-webkit-scrollbar {
-	height: 0.45rem;
-	width: 0.45rem;
+	height: 0.5rem;
+	width: 0.5rem;
 }
 
 ::-webkit-scrollbar-track {
 	background-color: transparent;
 	border-radius: 9999px;
+}
+
+* {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(170, 170, 170, 0.7) transparent;
+}
+
+.dark * {
+	scrollbar-color: rgba(110, 110, 110, 0.7) transparent;
 }
 
 select {
