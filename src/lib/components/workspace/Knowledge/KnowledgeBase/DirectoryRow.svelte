@@ -116,7 +116,10 @@
 	<button
 		class="relative flex items-center gap-1 rounded-xl p-2 text-left flex-1 justify-between"
 		type="button"
-		on:click={() => onNavigate(directory.id)}
+		on:click={() => {
+			if (editing) return;
+			onNavigate(directory.id);
+		}}
 	>
 		<div>
 			<div class="flex gap-2 items-center line-clamp-1">
@@ -127,6 +130,7 @@
 						bind:value={editName}
 						class="text-sm w-full bg-transparent border-none outline-hidden"
 						on:keydown={(e) => {
+							e.stopPropagation();
 							if (e.key === 'Enter') submitRename();
 							if (e.key === 'Escape') cancelRename();
 						}}
