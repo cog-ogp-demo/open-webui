@@ -117,8 +117,42 @@
 						el.style.contentVisibility = 'visible';
 					});
 
+					// Remove action buttons that should not appear in the PDF
+					clonedElement.querySelectorAll('.buttons').forEach((el) => el.remove());
+					clonedElement
+						.querySelectorAll('.copy-code-button, .run-code-button, .save-code-button')
+						.forEach((el) => el.remove());
+
 					// Let the browser compute layout for the cloned element
 					await new Promise((r) => requestAnimationFrame(r));
+
+					// Convert inline SVGs (e.g. Mermaid diagrams) to <img> for html2canvas
+					const svgElements = clonedElement.querySelectorAll('svg');
+					const imgLoadPromises: Promise<void>[] = [];
+					for (const svg of svgElements) {
+						// Skip tiny icon SVGs (only convert diagram-sized SVGs)
+						const width = svg.clientWidth || svg.getBoundingClientRect().width;
+						const height = svg.clientHeight || svg.getBoundingClientRect().height;
+						if (width < 50 && height < 50) continue;
+
+						const serializer = new XMLSerializer();
+						const svgString = serializer.serializeToString(svg);
+						const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+
+						const img = document.createElement('img');
+						img.src = dataUrl;
+						img.style.width = `${width}px`;
+						img.style.height = `${height}px`;
+						img.style.maxWidth = '100%';
+						imgLoadPromises.push(
+							new Promise<void>((resolve) => {
+								img.onload = () => resolve();
+								img.onerror = () => resolve();
+							})
+						);
+						svg.parentNode?.replaceChild(img, svg);
+					}
+					await Promise.all(imgLoadPromises);
 
 					// Render entire content once
 					const canvas = await html2canvas(clonedElement, {
