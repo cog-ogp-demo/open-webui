@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Farm - A Stardew Valley Inspired Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            border: 3px solid #4a4a6a;
+            border-radius: 4px;
+            image-rendering: pixelated;
+            cursor: crosshair;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .ui-panel {
+            background: rgba(20, 20, 40, 0.85);
+            border: 2px solid #6a6a9a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #e0e0ff;
+            font-size: 13px;
+            pointer-events: auto;
+        }
+
+        #inventory-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            background: rgba(20, 20, 40, 0.9);
+            border: 2px solid #6a6a9a;
+            border-radius: 6px;
+            padding: 6px;
+            pointer-events: auto;
+        }
+
+        .inv-slot {
+            width: 48px;
+            height: 48px;
+            background: rgba(40, 40, 70, 0.8);
+            border: 2px solid #4a4a6a;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+        .inv-slot.selected {
+            border-color: #ffdd57;
+            box-shadow: 0 0 8px rgba(255, 221, 87, 0.5);
+        }
+
+        .inv-slot .count {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 10px;
+            color: #fff;
+            text-shadow: 1px 1px 1px #000;
+        }
+
+        .inv-slot .key-hint {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 9px;
+            color: #888;
+        }
+
+        #tooltip {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 40, 0.9);
+            border: 1px solid #6a6a9a;
+            border-radius: 4px;
+            padding: 4px 10px;
+            color: #e0e0ff;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        #tooltip.visible {
+            opacity: 1;
+        }
+
+        #shop-modal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 40, 0.95);
+            border: 3px solid #6a6a9a;
+            border-radius: 10px;
+            padding: 20px;
+            color: #e0e0ff;
+            min-width: 300px;
+            z-index: 100;
+            pointer-events: auto;
+        }
+
+        #shop-modal h2 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #ffdd57;
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 4px 0;
+            background: rgba(40, 40, 70, 0.6);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .shop-item:hover {
+            background: rgba(60, 60, 100, 0.8);
+        }
+
+        .shop-close {
+            text-align: center;
+            margin-top: 12px;
+            color: #aaa;
+            font-size: 12px;
+        }
+
+        #message-log {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .game-message {
+            background: rgba(20, 20, 40, 0.85);
+            border: 1px solid #6a6a9a;
+            border-radius: 4px;
+            padding: 4px 12px;
+            color: #e0e0ff;
+            font-size: 12px;
+            animation: fadeUp 2s forwards;
+        }
+
+        @keyframes fadeUp {
+            0% { opacity: 1; transform: translateY(0); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 30, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            color: #e0e0ff;
+        }
+
+        #title-screen h1 {
+            font-size: 48px;
+            color: #7cba5c;
+            text-shadow: 3px 3px 0 #2d5a1e;
+            margin-bottom: 10px;
+        }
+
+        #title-screen p {
+            margin: 5px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        #title-screen .start-btn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: #4a8c3f;
+            border: 2px solid #7cba5c;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 18px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #title-screen .start-btn:hover {
+            background: #5ca04f;
+        }
+
+        #title-screen .controls {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game" width="960" height="640"></canvas>
+
+        <div id="ui-overlay">
+            <div class="ui-panel" id="day-panel">Day 1 - Spring | 6:00 AM</div>
+            <div class="ui-panel" id="gold-panel">Gold: 500</div>
+        </div>
+
+        <div id="inventory-bar"></div>
+        <div id="tooltip"></div>
+        <div id="message-log"></div>
+
+        <div id="shop-modal">
+            <h2>Pierre's Seeds</h2>
+            <div id="shop-items"></div>
+            <div class="shop-close">Press E or click outside to close</div>
+        </div>
+
+        <div id="title-screen">
+            <h1>Pixel Farm</h1>
+            <p>A Stardew Valley Inspired Farming Game</p>
+            <div class="controls">
+                <strong>Controls:</strong><br>
+                WASD / Arrow Keys - Move<br>
+                Space - Use Tool / Interact<br>
+                1-9 - Select Inventory Slot<br>
+                E - Open/Close Shop (near sign)<br>
+                Q - Switch Tool
+            </div>
+            <button class="start-btn" onclick="startGame()">Start Farming</button>
+        </div>
+    </div>
+
+    <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    // Constants
+    const TILE_SIZE = 32;
+    const MAP_WIDTH = 30;
+    const MAP_HEIGHT = 20;
+    const CAMERA_X = 0;
+    const CAMERA_Y = 0;
+
+    // Game State
+    let gameStarted = false;
+    let gameTime = 360; // minutes from midnight (6:00 AM)
+    let day = 1;
+    let season = 'Spring';
+    let gold = 500;
+    let energy = 100;
+    let maxEnergy = 100;
+
+    // Player
+    const player = {
+        x: 7 * TILE_SIZE,
+        y: 9 * TILE_SIZE,
+        width: 28,
+        height: 32,
+        speed: 3,
+        direction: 'down',
+        frame: 0,
+        animTimer: 0,
+        moving: false
+    };
+
+    // Input
+    const keys = {};
+    let selectedSlot = 0;
+
+    // Tools and Items
+    const ITEMS = {
+        hoe: { name: 'Hoe', icon: '⛏️', type: 'tool', description: 'Tills soil for planting' },
+        wateringCan: { name: 'Watering Can', icon: '🪣', type: 'tool', description: 'Waters crops' },
+        seeds_turnip: { name: 'Turnip Seeds', icon: '🌱', type: 'seed', crop: 'turnip', price: 20, description: 'Grows in 4 days' },
+        seeds_potato: { name: 'Potato Seeds', icon: '🥔', type: 'seed', crop: 'potato', price: 50, description: 'Grows in 6 days' },
+        seeds_tomato: { name: 'Tomato Seeds', icon: '🍅', type: 'seed', crop: 'tomato', price: 35, description: 'Grows in 8 days' },
+        seeds_corn: { name: 'Corn Seeds', icon: '🌽', type: 'seed', crop: 'corn', price: 80, description: 'Grows in 10 days' },
+        seeds_strawberry: { name: 'Strawberry Seeds', icon: '🍓', type: 'seed', crop: 'strawberry', price: 100, description: 'Grows in 8 days, regrows!' },
+        turnip: { name: 'Turnip', icon: '🥬', type: 'crop', sellPrice: 60, description: 'A fresh turnip' },
+        potato: { name: 'Potato', icon: '🥔', type: 'crop', sellPrice: 120, description: 'A hearty potato' },
+        tomato: { name: 'Tomato', icon: '🍅', type: 'crop', sellPrice: 90, description: 'A juicy tomato' },
+        corn: { name: 'Corn', icon: '🌽', type: 'crop', sellPrice: 200, description: 'Sweet golden corn' },
+        strawberry: { name: 'Strawberry', icon: '🍓', type: 'crop', sellPrice: 250, description: 'A sweet strawberry' },
+        axe: { name: 'Axe', icon: '🪓', type: 'tool', description: 'Chops trees and stumps' },
+        scythe: { name: 'Scythe', icon: '🔪', type: 'tool', description: 'Harvests crops' }
+    };
+
+    // Crop growth data
+    const CROPS = {
+        turnip: { stages: 4, growthDays: [1, 1, 1, 1], regrows: false },
+        potato: { stages: 4, growthDays: [1, 2, 2, 1], regrows: false },
+        tomato: { stages: 5, growthDays: [2, 2, 2, 1, 1], regrows: false },
+        corn: { stages: 5, growthDays: [2, 2, 3, 2, 1], regrows: false },
+        strawberry: { stages: 5, growthDays: [2, 2, 2, 1, 1], regrows: true }
+    };
+
+    // Inventory (9 slots)
+    let inventory = [
+        { item: 'hoe', count: 1 },
+        { item: 'wateringCan', count: 1 },
+        { item: 'scythe', count: 1 },
+        { item: 'axe', count: 1 },
+        { item: 'seeds_turnip', count: 15 },
+        { item: 'seeds_potato', count: 5 },
+        null,
+        null,
+        null
+    ];
+
+    // Tile types
+    const TILE = {
+        GRASS: 0,
+        DIRT: 1,
+        TILLED: 2,
+        WATERED: 3,
+        WATER: 4,
+        FENCE: 5,
+        PATH: 6,
+        TREE: 7,
+        HOUSE: 8,
+        SHOP_SIGN: 9,
+        FLOWER: 10,
+        ROCK: 11,
+        SHIPPING_BIN: 12,
+        BRIDGE: 13
+    };
+
+    // Map data
+    let map = [];
+    let crops = {}; // key: "x,y" -> {type, stage, dayPlanted, watered, daysGrown}
+    let particles = [];
+    let messages = [];
+
+    function generateMap() {
+        map = [];
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            map[y] = [];
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                // Default grass
+                map[y][x] = TILE.GRASS;
+
+                // Pond (bottom-right)
+                if (x >= 23 && x <= 28 && y >= 14 && y <= 18) {
+                    map[y][x] = TILE.WATER;
+                }
+
+                // Path from house to center
+                if (y === 9 && x >= 3 && x <= 14) map[y][x] = TILE.PATH;
+                if (x === 7 && y >= 5 && y <= 9) map[y][x] = TILE.PATH;
+
+                // House area (top-left)
+                if (x >= 5 && x <= 9 && y >= 2 && y <= 4) {
+                    map[y][x] = TILE.HOUSE;
+                }
+
+                // Farm plot area (pre-cleared dirt)
+                if (x >= 10 && x <= 21 && y >= 4 && y <= 16) {
+                    if (Math.random() < 0.7) {
+                        map[y][x] = TILE.DIRT;
+                    }
+                }
+
+                // Fences around farm
+                if ((x === 9 && y >= 3 && y <= 17) ||
+                    (x === 22 && y >= 3 && y <= 17) ||
+                    (y === 3 && x >= 9 && x <= 22) ||
+                    (y === 17 && x >= 9 && x <= 22)) {
+                    if (!(y === 9 && x === 9)) { // gate
+                        map[y][x] = TILE.FENCE;
+                    }
+                }
+
+                // Trees (scattered)
+                if (map[y][x] === TILE.GRASS) {
+                    if ((x < 4 || x > 25 || y > 17) && Math.random() < 0.15) {
+                        map[y][x] = TILE.TREE;
+                    }
+                }
+
+                // Rocks
+                if (map[y][x] === TILE.DIRT && Math.random() < 0.05) {
+                    map[y][x] = TILE.ROCK;
+                }
+
+                // Flowers
+                if (map[y][x] === TILE.GRASS && Math.random() < 0.05) {
+                    map[y][x] = TILE.FLOWER;
+                }
+
+                // Shop sign
+                if (x === 3 && y === 9) map[y][x] = TILE.SHOP_SIGN;
+
+                // Shipping bin
+                if (x === 4 && y === 5) map[y][x] = TILE.SHIPPING_BIN;
+            }
+        }
+
+        // Bridge over water
+        if (MAP_HEIGHT > 15 && MAP_WIDTH > 24) {
+            for (let x = 23; x <= 28; x++) {
+                if (map[14]) map[14][x] = TILE.BRIDGE;
+            }
+        }
+    }
+
+    // Colors for tiles
+    function getTileColor(tile, x, y) {
+        const timeOfDay = getTimeOfDay();
+        switch (tile) {
+            case TILE.GRASS: return timeOfDay === 'night' ? '#1a4a1a' : '#5cb85c';
+            case TILE.DIRT: return timeOfDay === 'night' ? '#3d2b1a' : '#8B6914';
+            case TILE.TILLED: return timeOfDay === 'night' ? '#2d1f0f' : '#654321';
+            case TILE.WATERED: return timeOfDay === 'night' ? '#1a1505' : '#3d2b0a';
+            case TILE.WATER: {
+                const wave = Math.sin((x + y + Date.now() / 500) * 0.5) * 10;
+                const b = Math.floor(180 + wave);
+                return `rgb(50, 100, ${b})`;
+            }
+            case TILE.FENCE: return '#8B4513';
+            case TILE.PATH: return timeOfDay === 'night' ? '#4a4a3a' : '#c2a679';
+            case TILE.TREE: return timeOfDay === 'night' ? '#1a4a1a' : '#5cb85c';
+            case TILE.HOUSE: return '#a0522d';
+            case TILE.SHOP_SIGN: return timeOfDay === 'night' ? '#1a4a1a' : '#5cb85c';
+            case TILE.FLOWER: return timeOfDay === 'night' ? '#1a4a1a' : '#5cb85c';
+            case TILE.ROCK: return '#888';
+            case TILE.SHIPPING_BIN: return '#8B4513';
+            case TILE.BRIDGE: return '#a0825a';
+            default: return '#5cb85c';
+        }
+    }
+
+    function getTimeOfDay() {
+        if (gameTime >= 360 && gameTime < 720) return 'morning';
+        if (gameTime >= 720 && gameTime < 1080) return 'afternoon';
+        if (gameTime >= 1080 && gameTime < 1200) return 'evening';
+        return 'night';
+    }
+
+    function getDayOverlay() {
+        const t = getTimeOfDay();
+        if (t === 'morning') return 'rgba(255, 200, 100, 0.05)';
+        if (t === 'afternoon') return 'rgba(255, 255, 200, 0.02)';
+        if (t === 'evening') return 'rgba(255, 100, 50, 0.15)';
+        return 'rgba(0, 0, 50, 0.4)';
+    }
+
+    function drawTile(x, y) {
+        const tile = map[y][x];
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+
+        // Base color
+        ctx.fillStyle = getTileColor(tile, x, y);
+        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+        // Tile details
+        switch (tile) {
+            case TILE.GRASS:
+                // Random grass blades
+                ctx.fillStyle = getTimeOfDay() === 'night' ? '#2a5a2a' : '#6dc86d';
+                if ((x * 7 + y * 13) % 5 === 0) {
+                    ctx.fillRect(px + 8, py + 12, 2, 8);
+                    ctx.fillRect(px + 20, py + 16, 2, 6);
+                }
+                break;
+
+            case TILE.TILLED:
+                // Furrow lines
+                ctx.fillStyle = '#543210';
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillRect(px + 4, py + 6 + i * 10, TILE_SIZE - 8, 2);
+                }
+                break;
+
+            case TILE.WATERED:
+                ctx.fillStyle = '#2a1800';
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillRect(px + 4, py + 6 + i * 10, TILE_SIZE - 8, 2);
+                }
+                // Moisture shine
+                ctx.fillStyle = 'rgba(100, 150, 255, 0.15)';
+                ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                break;
+
+            case TILE.WATER:
+                // Water highlights
+                ctx.fillStyle = 'rgba(150, 200, 255, 0.2)';
+                const waveX = Math.sin((x + Date.now() / 800) * 0.8) * 4;
+                ctx.fillRect(px + 8 + waveX, py + 6, 12, 2);
+                ctx.fillRect(px + 4 + waveX, py + 18, 8, 2);
+                break;
+
+            case TILE.FENCE:
+                // Fence post
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(px + 12, py + 4, 8, 24);
+                ctx.fillRect(px + 6, py + 8, 20, 4);
+                ctx.fillRect(px + 6, py + 20, 20, 4);
+                break;
+
+            case TILE.TREE:
+                // Trunk
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(px + 12, py + 16, 8, 16);
+                // Canopy
+                ctx.fillStyle = getTimeOfDay() === 'night' ? '#1a5a1a' : '#2d8a2d';
+                ctx.beginPath();
+                ctx.arc(px + 16, py + 12, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = getTimeOfDay() === 'night' ? '#0a4a0a' : '#1d7a1d';
+                ctx.beginPath();
+                ctx.arc(px + 14, py + 10, 8, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+
+            case TILE.HOUSE:
+                // House walls
+                ctx.fillStyle = '#deb887';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                // Roof
+                ctx.fillStyle = '#8b0000';
+                ctx.fillRect(px, py, TILE_SIZE, 10);
+                // Window/door based on position
+                if (x === 7 && y === 4) {
+                    ctx.fillStyle = '#4a2800';
+                    ctx.fillRect(px + 10, py + 12, 12, 20);
+                } else {
+                    ctx.fillStyle = 'rgba(135, 206, 250, 0.7)';
+                    ctx.fillRect(px + 8, py + 14, 16, 12);
+                    ctx.fillStyle = '#654321';
+                    ctx.fillRect(px + 15, py + 14, 2, 12);
+                    ctx.fillRect(px + 8, py + 19, 16, 2);
+                }
+                break;
+
+            case TILE.SHOP_SIGN:
+                // Sign post
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(px + 14, py + 16, 4, 16);
+                // Sign
+                ctx.fillStyle = '#deb887';
+                ctx.fillRect(px + 4, py + 4, 24, 14);
+                ctx.fillStyle = '#333';
+                ctx.font = '8px monospace';
+                ctx.fillText('SHOP', px + 7, py + 14);
+                break;
+
+            case TILE.FLOWER:
+                // Grass base
+                ctx.fillStyle = getTimeOfDay() === 'night' ? '#2a5a2a' : '#6dc86d';
+                ctx.fillRect(px + 8, py + 20, 2, 8);
+                // Flower
+                const flowerColors = ['#ff6b9d', '#ffd93d', '#6bcf7f', '#a084e8'];
+                ctx.fillStyle = flowerColors[(x * 3 + y * 7) % flowerColors.length];
+                ctx.beginPath();
+                ctx.arc(px + 9, py + 18, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffdd57';
+                ctx.beginPath();
+                ctx.arc(px + 9, py + 18, 2, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+
+            case TILE.ROCK:
+                ctx.fillStyle = '#999';
+                ctx.beginPath();
+                ctx.arc(px + 16, py + 20, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#aaa';
+                ctx.beginPath();
+                ctx.arc(px + 14, py + 18, 6, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+
+            case TILE.SHIPPING_BIN:
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(px + 2, py + 8, 28, 22);
+                ctx.fillStyle = '#8B6914';
+                ctx.fillRect(px + 4, py + 10, 24, 18);
+                ctx.fillStyle = '#ffdd57';
+                ctx.fillRect(px + 12, py + 16, 8, 4);
+                break;
+
+            case TILE.BRIDGE:
+                ctx.fillStyle = '#8B6914';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(px, py, TILE_SIZE, 3);
+                ctx.fillRect(px, py + TILE_SIZE - 3, TILE_SIZE, 3);
+                break;
+        }
+    }
+
+    function drawCrop(x, y) {
+        const key = `${x},${y}`;
+        const crop = crops[key];
+        if (!crop) return;
+
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+        const cropData = CROPS[crop.type];
+        const maxStage = cropData.stages;
+        const progress = Math.min(crop.stage, maxStage);
+
+        // Draw crop based on growth stage
+        if (progress === 0) {
+            // Just planted - tiny sprout
+            ctx.fillStyle = '#7cba5c';
+            ctx.fillRect(px + 14, py + 22, 4, 8);
+            ctx.fillRect(px + 12, py + 20, 8, 4);
+        } else if (progress < maxStage - 1) {
+            // Growing - medium plant
+            const height = 8 + progress * 4;
+            ctx.fillStyle = '#5a9a3a';
+            ctx.fillRect(px + 14, py + 28 - height, 4, height);
+            // Leaves
+            ctx.fillStyle = '#7cba5c';
+            ctx.fillRect(px + 8, py + 28 - height + 4, 6, 4);
+            ctx.fillRect(px + 18, py + 28 - height + 8, 6, 4);
+        } else {
+            // Fully grown - show crop icon
+            ctx.fillStyle = '#5a9a3a';
+            ctx.fillRect(px + 14, py + 10, 4, 18);
+            ctx.fillStyle = '#7cba5c';
+            ctx.fillRect(px + 8, py + 14, 6, 4);
+            ctx.fillRect(px + 18, py + 18, 6, 4);
+
+            // Fruit/crop indicator
+            const cropColors = {
+                turnip: '#e8e8e8',
+                potato: '#c8a848',
+                tomato: '#e83030',
+                corn: '#f0d020',
+                strawberry: '#ff3060'
+            };
+            ctx.fillStyle = cropColors[crop.type] || '#ff0';
+            ctx.beginPath();
+            ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Watered indicator (sparkle)
+        if (crop.watered) {
+            ctx.fillStyle = 'rgba(100, 180, 255, 0.5)';
+            ctx.fillRect(px + 4, py + 26, 4, 4);
+        }
+    }
+
+    function drawPlayer() {
+        const px = player.x;
+        const py = player.y;
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.beginPath();
+        ctx.ellipse(px + 14, py + 30, 10, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body
+        ctx.fillStyle = '#4a7abc';
+        ctx.fillRect(px + 8, py + 14, 12, 14);
+
+        // Head
+        ctx.fillStyle = '#ffd5a0';
+        ctx.fillRect(px + 9, py + 4, 10, 10);
+
+        // Hair
+        ctx.fillStyle = '#8b4513';
+        ctx.fillRect(px + 8, py + 2, 12, 5);
+
+        // Eyes based on direction
+        ctx.fillStyle = '#333';
+        if (player.direction === 'down') {
+            ctx.fillRect(px + 11, py + 8, 2, 2);
+            ctx.fillRect(px + 15, py + 8, 2, 2);
+        } else if (player.direction === 'up') {
+            // Back of head
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(px + 9, py + 4, 10, 8);
+        } else if (player.direction === 'left') {
+            ctx.fillRect(px + 10, py + 8, 2, 2);
+        } else {
+            ctx.fillRect(px + 16, py + 8, 2, 2);
+        }
+
+        // Hat
+        ctx.fillStyle = '#ffd700';
+        ctx.fillRect(px + 6, py + 1, 16, 3);
+        ctx.fillRect(px + 9, py - 2, 10, 4);
+
+        // Legs (animated)
+        ctx.fillStyle = '#654321';
+        const legOffset = player.moving ? Math.sin(Date.now() / 100) * 2 : 0;
+        ctx.fillRect(px + 9, py + 28, 4, 4 + legOffset);
+        ctx.fillRect(px + 15, py + 28, 4, 4 - legOffset);
+
+        // Held item indicator
+        const slot = inventory[selectedSlot];
+        if (slot) {
+            const item = ITEMS[slot.item];
+            ctx.font = '12px sans-serif';
+            if (player.direction === 'right') {
+                ctx.fillText(item.icon, px + 24, py + 18);
+            } else if (player.direction === 'left') {
+                ctx.fillText(item.icon, px - 4, py + 18);
+            }
+        }
+    }
+
+    function drawParticles() {
+        particles = particles.filter(p => {
+            p.life -= 0.02;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.1;
+
+            if (p.life <= 0) return false;
+
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+            ctx.globalAlpha = 1;
+            return true;
+        });
+    }
+
+    function spawnParticles(x, y, color, count) {
+        for (let i = 0; i < count; i++) {
+            particles.push({
+                x: x + Math.random() * 16,
+                y: y + Math.random() * 16,
+                vx: (Math.random() - 0.5) * 3,
+                vy: -Math.random() * 3,
+                life: 1,
+                color: color,
+                size: 2 + Math.random() * 3
+            });
+        }
+    }
+
+    function showMessage(text) {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'game-message';
+        msgEl.textContent = text;
+        document.getElementById('message-log').appendChild(msgEl);
+        setTimeout(() => msgEl.remove(), 2000);
+    }
+
+    // Game Logic
+    function getPlayerTile() {
+        return {
+            x: Math.floor((player.x + 14) / TILE_SIZE),
+            y: Math.floor((player.y + 16) / TILE_SIZE)
+        };
+    }
+
+    function getFacingTile() {
+        const pt = getPlayerTile();
+        switch (player.direction) {
+            case 'up': return { x: pt.x, y: pt.y - 1 };
+            case 'down': return { x: pt.x, y: pt.y + 1 };
+            case 'left': return { x: pt.x - 1, y: pt.y };
+            case 'right': return { x: pt.x + 1, y: pt.y };
+        }
+        return pt;
+    }
+
+    function isWalkable(x, y) {
+        if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) return false;
+        const tile = map[y][x];
+        return tile !== TILE.WATER && tile !== TILE.FENCE && tile !== TILE.TREE &&
+               tile !== TILE.HOUSE && tile !== TILE.ROCK;
+    }
+
+    function useToolOrItem() {
+        const slot = inventory[selectedSlot];
+        if (!slot) return;
+
+        const facing = getFacingTile();
+        const fx = facing.x;
+        const fy = facing.y;
+
+        if (fx < 0 || fx >= MAP_WIDTH || fy < 0 || fy >= MAP_HEIGHT) return;
+
+        const item = ITEMS[slot.item];
+        const tileType = map[fy][fx];
+        const cropKey = `${fx},${fy}`;
+
+        if (energy <= 0) {
+            showMessage("You're too tired! Sleep to restore energy.");
+            return;
+        }
+
+        switch (slot.item) {
+            case 'hoe':
+                if (tileType === TILE.DIRT || tileType === TILE.GRASS) {
+                    map[fy][fx] = TILE.TILLED;
+                    energy -= 2;
+                    spawnParticles(fx * TILE_SIZE, fy * TILE_SIZE, '#8B6914', 5);
+                    showMessage('Tilled the soil!');
+                } else if (tileType === TILE.TILLED || tileType === TILE.WATERED) {
+                    showMessage('Already tilled!');
+                }
+                break;
+
+            case 'wateringCan':
+                if ((tileType === TILE.TILLED || tileType === TILE.WATERED) && crops[cropKey]) {
+                    map[fy][fx] = TILE.WATERED;
+                    crops[cropKey].watered = true;
+                    energy -= 1;
+                    spawnParticles(fx * TILE_SIZE, fy * TILE_SIZE, '#6bf', 8);
+                    showMessage('Watered the crop!');
+                } else if (tileType === TILE.TILLED) {
+                    map[fy][fx] = TILE.WATERED;
+                    energy -= 1;
+                    spawnParticles(fx * TILE_SIZE, fy * TILE_SIZE, '#6bf', 8);
+                    showMessage('Watered the soil!');
+                } else {
+                    showMessage('Nothing to water here.');
+                }
+                break;
+
+            case 'scythe':
+                if (crops[cropKey]) {
+                    const crop = crops[cropKey];
+                    const cropData = CROPS[crop.type];
+                    if (crop.stage >= cropData.stages) {
+                        // Harvest!
+                        const harvestItem = crop.type;
+                        addToInventory(harvestItem, 1 + Math.floor(Math.random() * 2));
+                        spawnParticles(fx * TILE_SIZE, fy * TILE_SIZE, '#ffd700', 10);
+                        showMessage(`Harvested ${ITEMS[harvestItem].name}!`);
+                        energy -= 1;
+
+                        if (cropData.regrows) {
+                            crop.stage = cropData.stages - 2;
+                            crop.watered = false;
+                        } else {
+                            delete crops[cropKey];
+                            map[fy][fx] = TILE.TILLED;
+                        }
+                    } else {
+                        showMessage('Not ready to harvest yet.');
+                    }
+                } else if (tileType === TILE.GRASS || tileType === TILE.FLOWER) {
+                    map[fy][fx] = TILE.DIRT;
+                    energy -= 1;
+                    spawnParticles(fx * TILE_SIZE, fy * TILE_SIZE, '#5cb85c', 5);
+                }
+                break;
+
+            case 'axe':
+                if (tileType === TILE.TREE) {
+                    map[fy][fx] = TILE.DIRT;
+                    energy -= 5;
+                    spawnParticles(fx * TILE_SIZE, fy * TILE_SIZE, '#654321', 8);
+                    showMessage('Chopped down a tree!');
+                } else if (tileType === TILE.ROCK) {
+                    map[fy][fx] = TILE.DIRT;
+                    energy -= 4;
+                    spawnParticles(fx * TILE_SIZE, fy * TILE_SIZE, '#999', 6);
+                    showMessage('Broke the rock!');
+                }
+                break;
+
+            default:
+                if (item.type === 'seed') {
+                    if (tileType === TILE.TILLED || tileType === TILE.WATERED) {
+                        if (!crops[cropKey]) {
+                            crops[cropKey] = {
+                                type: item.crop,
+                                stage: 0,
+                                dayPlanted: day,
+                                watered: tileType === TILE.WATERED,
+                                daysGrown: 0
+                            };
+                            slot.count--;
+                            if (slot.count <= 0) inventory[selectedSlot] = null;
+                            energy -= 1;
+                            spawnParticles(fx * TILE_SIZE, fy * TILE_SIZE, '#7cba5c', 5);
+                            showMessage(`Planted ${item.name}!`);
+                        } else {
+                            showMessage('Something is already planted here!');
+                        }
+                    } else {
+                        showMessage('Till the soil first!');
+                    }
+                } else if (item.type === 'crop') {
+                    // Sell at shipping bin
+                    const pt = getPlayerTile();
+                    if (Math.abs(pt.x - 4) <= 1 && Math.abs(pt.y - 5) <= 1) {
+                        gold += item.sellPrice * slot.count;
+                        showMessage(`Sold ${slot.count}x ${item.name} for ${item.sellPrice * slot.count}g!`);
+                        spawnParticles(4 * TILE_SIZE, 5 * TILE_SIZE, '#ffd700', 12);
+                        inventory[selectedSlot] = null;
+                    } else {
+                        showMessage('Go to the shipping bin to sell!');
+                    }
+                }
+                break;
+        }
+    }
+
+    function addToInventory(itemId, count) {
+        // Try to stack first
+        for (let i = 0; i < inventory.length; i++) {
+            if (inventory[i] && inventory[i].item === itemId) {
+                inventory[i].count += count;
+                return true;
+            }
+        }
+        // Find empty slot
+        for (let i = 0; i < inventory.length; i++) {
+            if (!inventory[i]) {
+                inventory[i] = { item: itemId, count: count };
+                return true;
+            }
+        }
+        showMessage('Inventory full!');
+        return false;
+    }
+
+    function advanceDay() {
+        day++;
+        gameTime = 360;
+        energy = maxEnergy;
+
+        // Grow crops
+        for (const key in crops) {
+            const crop = crops[key];
+            if (crop.watered) {
+                crop.daysGrown++;
+                const cropData = CROPS[crop.type];
+                let daysNeeded = 0;
+                for (let i = 0; i <= crop.stage && i < cropData.growthDays.length; i++) {
+                    daysNeeded += cropData.growthDays[i];
+                }
+                if (crop.daysGrown >= daysNeeded && crop.stage < cropData.stages) {
+                    crop.stage++;
+                }
+            }
+            crop.watered = false;
+
+            // Reset watered tiles to tilled
+            const [x, y] = key.split(',').map(Number);
+            if (map[y][x] === TILE.WATERED) {
+                map[y][x] = TILE.TILLED;
+            }
+        }
+
+        // Season change
+        if (day % 28 === 0) {
+            const seasons = ['Spring', 'Summer', 'Fall', 'Winter'];
+            const idx = seasons.indexOf(season);
+            season = seasons[(idx + 1) % 4];
+            showMessage(`${season} has arrived!`);
+        }
+
+        showMessage(`Day ${day} - ${season}`);
+    }
+
+    // Shop
+    let shopOpen = false;
+    const shopItems = [
+        { id: 'seeds_turnip', price: 20 },
+        { id: 'seeds_potato', price: 50 },
+        { id: 'seeds_tomato', price: 35 },
+        { id: 'seeds_corn', price: 80 },
+        { id: 'seeds_strawberry', price: 100 }
+    ];
+
+    function openShop() {
+        shopOpen = true;
+        const modal = document.getElementById('shop-modal');
+        modal.style.display = 'block';
+
+        const itemsDiv = document.getElementById('shop-items');
+        itemsDiv.innerHTML = '';
+        shopItems.forEach(si => {
+            const item = ITEMS[si.id];
+            const div = document.createElement('div');
+            div.className = 'shop-item';
+            div.innerHTML = `
+                <span>${item.icon} ${item.name}</span>
+                <span style="color: #ffd700">${si.price}g</span>
+            `;
+            div.onclick = () => buyItem(si.id, si.price);
+            itemsDiv.appendChild(div);
+        });
+    }
+
+    function closeShop() {
+        shopOpen = false;
+        document.getElementById('shop-modal').style.display = 'none';
+    }
+
+    function buyItem(itemId, price) {
+        if (gold >= price) {
+            if (addToInventory(itemId, 5)) {
+                gold -= price;
+                showMessage(`Bought 5x ${ITEMS[itemId].name}!`);
+                spawnParticles(player.x, player.y, '#ffd700', 5);
+            }
+        } else {
+            showMessage('Not enough gold!');
+        }
+    }
+
+    // UI Updates
+    function updateUI() {
+        const hours = Math.floor(gameTime / 60);
+        const mins = Math.floor(gameTime % 60);
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours > 12 ? hours - 12 : hours;
+        document.getElementById('day-panel').textContent =
+            `Day ${day} - ${season} | ${displayHours}:${mins.toString().padStart(2, '0')} ${ampm} | Energy: ${Math.floor(energy)}/${maxEnergy}`;
+        document.getElementById('gold-panel').textContent = `Gold: ${gold}`;
+
+        // Inventory bar
+        const bar = document.getElementById('inventory-bar');
+        bar.innerHTML = '';
+        for (let i = 0; i < 9; i++) {
+            const div = document.createElement('div');
+            div.className = 'inv-slot' + (i === selectedSlot ? ' selected' : '');
+            div.onclick = () => { selectedSlot = i; };
+
+            const keyHint = document.createElement('span');
+            keyHint.className = 'key-hint';
+            keyHint.textContent = i + 1;
+            div.appendChild(keyHint);
+
+            if (inventory[i]) {
+                const item = ITEMS[inventory[i].item];
+                div.innerHTML += item.icon;
+                if (inventory[i].count > 1) {
+                    const count = document.createElement('span');
+                    count.className = 'count';
+                    count.textContent = inventory[i].count;
+                    div.appendChild(count);
+                }
+            }
+            bar.appendChild(div);
+        }
+
+        // Tooltip
+        const tooltip = document.getElementById('tooltip');
+        if (inventory[selectedSlot]) {
+            const item = ITEMS[inventory[selectedSlot].item];
+            tooltip.textContent = `${item.name} - ${item.description}`;
+            tooltip.classList.add('visible');
+        } else {
+            tooltip.classList.remove('visible');
+        }
+    }
+
+    // Main Update
+    function update() {
+        if (!gameStarted) return;
+
+        // Player movement
+        player.moving = false;
+        let dx = 0, dy = 0;
+
+        if (keys['ArrowUp'] || keys['KeyW']) { dy = -1; player.direction = 'up'; }
+        if (keys['ArrowDown'] || keys['KeyS']) { dy = 1; player.direction = 'down'; }
+        if (keys['ArrowLeft'] || keys['KeyA']) { dx = -1; player.direction = 'left'; }
+        if (keys['ArrowRight'] || keys['KeyD']) { dx = 1; player.direction = 'right'; }
+
+        if (dx !== 0 || dy !== 0) {
+            player.moving = true;
+            const newX = player.x + dx * player.speed;
+            const newY = player.y + dy * player.speed;
+
+            // Collision check
+            const tileX = Math.floor((newX + 14) / TILE_SIZE);
+            const tileY = Math.floor((newY + 16) / TILE_SIZE);
+
+            if (isWalkable(tileX, tileY)) {
+                player.x = Math.max(0, Math.min(newX, (MAP_WIDTH - 1) * TILE_SIZE));
+                player.y = Math.max(0, Math.min(newY, (MAP_HEIGHT - 1) * TILE_SIZE));
+            }
+        }
+
+        // Time advancement
+        gameTime += 0.05; // slow time
+        if (gameTime >= 1440) { // midnight = sleep
+            advanceDay();
+        }
+    }
+
+    function render() {
+        // Clear
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw map
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                drawTile(x, y);
+            }
+        }
+
+        // Draw crops
+        for (const key in crops) {
+            const [x, y] = key.split(',').map(Number);
+            drawCrop(x, y);
+        }
+
+        // Draw player
+        drawPlayer();
+
+        // Draw particles
+        drawParticles();
+
+        // Draw facing tile indicator
+        if (gameStarted) {
+            const facing = getFacingTile();
+            ctx.strokeStyle = 'rgba(255, 255, 100, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeRect(facing.x * TILE_SIZE, facing.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.setLineDash([]);
+        }
+
+        // Day/night overlay
+        ctx.fillStyle = getDayOverlay();
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // UI
+        updateUI();
+    }
+
+    function gameLoop() {
+        update();
+        render();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Input Handling
+    document.addEventListener('keydown', (e) => {
+        keys[e.code] = true;
+
+        if (!gameStarted) return;
+
+        if (shopOpen) {
+            if (e.code === 'KeyE' || e.code === 'Escape') {
+                closeShop();
+            }
+            return;
+        }
+
+        // Number keys for inventory
+        if (e.code >= 'Digit1' && e.code <= 'Digit9') {
+            selectedSlot = parseInt(e.code.replace('Digit', '')) - 1;
+        }
+
+        // Space to use tool
+        if (e.code === 'Space') {
+            e.preventDefault();
+            useToolOrItem();
+        }
+
+        // E to interact/open shop
+        if (e.code === 'KeyE') {
+            const pt = getPlayerTile();
+            if (Math.abs(pt.x - 3) <= 1 && Math.abs(pt.y - 9) <= 1) {
+                openShop();
+            } else if (Math.abs(pt.x - 7) <= 1 && Math.abs(pt.y - 4) <= 1) {
+                // Sleep at house
+                showMessage('Going to bed...');
+                setTimeout(() => advanceDay(), 500);
+            } else if (Math.abs(pt.x - 4) <= 1 && Math.abs(pt.y - 5) <= 1) {
+                // Sell items at shipping bin
+                const slot = inventory[selectedSlot];
+                if (slot && ITEMS[slot.item].type === 'crop') {
+                    const item = ITEMS[slot.item];
+                    gold += item.sellPrice * slot.count;
+                    showMessage(`Sold ${slot.count}x ${item.name} for ${item.sellPrice * slot.count}g!`);
+                    spawnParticles(4 * TILE_SIZE, 5 * TILE_SIZE, '#ffd700', 12);
+                    inventory[selectedSlot] = null;
+                }
+            }
+        }
+
+        // Q to cycle tools
+        if (e.code === 'KeyQ') {
+            selectedSlot = (selectedSlot + 1) % 9;
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        keys[e.code] = false;
+    });
+
+    // Prevent scrolling
+    window.addEventListener('keydown', (e) => {
+        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+            e.preventDefault();
+        }
+    });
+
+    // Start game
+    function startGame() {
+        document.getElementById('title-screen').style.display = 'none';
+        gameStarted = true;
+        generateMap();
+        showMessage('Welcome to Pixel Farm! Use WASD to move, Space to use tools.');
+        showMessage('Press E near the shop sign to buy seeds!');
+    }
+
+    // Initialize
+    generateMap();
+    gameLoop();
+    </script>
+</body>
+</html>
