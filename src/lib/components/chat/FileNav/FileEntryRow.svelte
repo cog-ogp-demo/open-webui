@@ -274,6 +274,7 @@
 							cancelRename();
 						}
 					}}
+					on:keyup|stopPropagation
 					on:blur={submitRename}
 					on:click|stopPropagation
 				/>

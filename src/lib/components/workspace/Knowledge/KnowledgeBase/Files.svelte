@@ -127,6 +127,7 @@
 									if (e.key === 'Enter') submitRename();
 									if (e.key === 'Escape') cancelRename();
 								}}
+								on:keyup|stopPropagation
 								on:blur={submitRename}
 								on:click|stopPropagation
 								autofocus
