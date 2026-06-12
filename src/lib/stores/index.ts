@@ -196,6 +196,7 @@ type Settings = {
 	imageCompressionSize?: any;
 	textScale?: number;
 	widescreenMode?: null;
+	showMessageTimestamps?: boolean;
 	largeTextAsFile?: boolean;
 	promptAutocomplete?: boolean;
 	hapticFeedback?: boolean;
