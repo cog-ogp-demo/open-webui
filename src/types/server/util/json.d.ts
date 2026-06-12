@@ -1,3 +1,0 @@
-interface JsonMessage {
-  message: string
-}

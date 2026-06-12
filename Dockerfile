@@ -1,50 +1,47 @@
-FROM node:18-alpine3.18
+# Multi-stage build for GoGovSG Next.js app
+FROM node:18-alpine AS base
 
-LABEL maintainer="Open Government Products" email="go@open.gov.sg"
+# Install dependencies
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
+RUN npm ci
 
-# Inject ASSET_VARIANT via build arguments for production
-ARG __ASSET_VARIANT
-ENV ASSET_VARIANT=${__ASSET_VARIANT:-gov}
+# Build
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npx prisma generate
+RUN npm run build
 
-ARG __DD_SERVICE
-ENV DD_SERVICE=${__DD_SERVICE}
+# Production image
+FROM base AS runner
+WORKDIR /app
 
-ARG __DD_ENV
-ENV DD_ENV=${__DD_ENV}
+ENV NODE_ENV=production
 
-ARG DD_GIT_REPOSITORY_URL
-ARG DD_GIT_COMMIT_SHA
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-ENV DD_GIT_REPOSITORY_URL=${DD_GIT_REPOSITORY_URL} 
-ENV DD_GIT_COMMIT_SHA=${DD_GIT_COMMIT_SHA}
+COPY --from=builder /app/public ./public
 
-WORKDIR /usr/src/gogovsg
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
 
-# For Express server
-EXPOSE 8080
+# Leverage output traces for minimal image size
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
-# For dev webpack server only, proxies to localhost:8080
+USER nextjs
+
 EXPOSE 3000
 
-RUN apk update && apk add font-freefont && rm -rf /var/cache/apk/*
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Installs IBMPlexSans-Regular.otf for QRCodeService.
-RUN wget https://github.com/IBM/plex/blob/master/packages/plex-sans/fonts/complete/otf/IBMPlexSans-Regular.otf?raw=true -O /usr/share/fonts/freefont/IBMPlexSans-Regular.otf
-RUN fc-cache -f
-
-# Install libraries
-COPY package.json package-lock.json ./
-
-RUN npm ci --legacy-peer-deps
-
-COPY . ./
-
-RUN { \
-  echo "Building..."; \
-  npm run build; \
-  echo "Removing devDependencies for production..."; \
-  npm prune --production --legacy-peer-deps; \
-  }
-
-# Builds and starts Node server for production
-CMD ["npm", "run", "start"]
+CMD ["node", "server.js"]
