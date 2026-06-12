@@ -2012,6 +2012,61 @@ export const renderVegaVisualization = async (spec: string, i18n?: any) => {
 	return svg;
 };
 
+/**
+ * Replace inline <svg> elements with <img> tags so html2canvas can rasterise them.
+ * Operates in-place on the provided DOM element (use on a clone, not the live DOM).
+ */
+export const convertSvgsToImages = async (container: HTMLElement): Promise<void> => {
+	const svgs = container.querySelectorAll('svg');
+	await Promise.all(
+		Array.from(svgs).map(async (svg) => {
+			try {
+				if (!svg.hasAttribute('xmlns')) {
+					svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+				}
+
+				// Inline computed styles so the image is self-contained
+				const computedStyleSheets = Array.from(document.styleSheets);
+				let cssText = '';
+				for (const sheet of computedStyleSheets) {
+					try {
+						for (const rule of sheet.cssRules) {
+							cssText += rule.cssText + '\n';
+						}
+					} catch {
+						// CORS-restricted sheets – skip
+					}
+				}
+				if (cssText) {
+					const styleEl = document.createElement('style');
+					styleEl.textContent = cssText;
+					svg.insertBefore(styleEl, svg.firstChild);
+				}
+
+				const serializer = new XMLSerializer();
+				const svgString = serializer.serializeToString(svg);
+				const dataUrl =
+					'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+
+				const img = document.createElement('img');
+				img.src = dataUrl;
+
+				// Preserve the original dimensions
+				const rect = svg.getBoundingClientRect();
+				if (rect.width) img.style.width = `${rect.width}px`;
+				if (rect.height) img.style.height = `${rect.height}px`;
+
+				// Wait for the browser to decode the image before swapping
+				await img.decode().catch(() => {});
+
+				svg.parentNode?.replaceChild(img, svg);
+			} catch {
+				// If conversion fails for one SVG, leave it as-is
+			}
+		})
+	);
+};
+
 export const getCodeBlockContents = (content: string): object => {
 	// Strip thinking/reasoning and other detail blocks before extracting code
 	// to prevent code inside <details type="reasoning"> from being treated as artifacts
