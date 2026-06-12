@@ -127,7 +127,10 @@
 									if (e.key === 'Enter') submitRename();
 									if (e.key === 'Escape') cancelRename();
 								}}
-								on:keyup|stopPropagation
+								on:keyup={(e) => {
+									e.stopPropagation();
+									if (e.key === ' ') e.preventDefault();
+								}}
 								on:keypress|stopPropagation
 								on:blur={submitRename}
 								on:click={(e) => e.stopPropagation()}
