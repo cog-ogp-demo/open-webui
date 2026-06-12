@@ -1,13 +1,11 @@
 import asyncio
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.internal.db import get_async_session
 from open_webui.models.automations import (
     AutomationForm,
-    AutomationListResponse,
     AutomationModel,
     AutomationResponse,
     AutomationRunModel,
@@ -15,7 +13,7 @@ from open_webui.models.automations import (
     Automations,
 )
 from open_webui.utils.access_control import has_permission
-from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.auth import get_verified_user
 from open_webui.utils.automations import (
     execute_automation,
     next_n_runs_ns,
@@ -112,9 +110,9 @@ async def enrich_automation(automation: AutomationModel, db: AsyncSession, tz: s
 @router.get('/list')
 async def get_automation_items(
     request: Request,
-    query: Optional[str] = None,
-    status: Optional[str] = None,
-    page: Optional[int] = 1,
+    query: str | None = None,
+    status: str | None = None,
+    page: int | None = 1,
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):

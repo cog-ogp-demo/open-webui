@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Optional
 
 from open_webui.internal.db import Base, get_async_db_context
 from pydantic import BaseModel, ConfigDict

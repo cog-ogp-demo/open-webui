@@ -7,7 +7,7 @@ import time
 
 # local imports
 from open_webui.internal.db import Base, JSONField, get_async_db_context
-from open_webui.models.users import UserModel, UserResponse, Users
+from open_webui.models.users import UserResponse, Users
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import BigInteger, Boolean, Column, Index, String, Text, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -356,7 +356,7 @@ class FunctionsTable:
                 user_settings['functions']['valves'] = {}
 
             return user_settings['functions']['valves'].get(id, {})
-        except Exception as e:
+        except Exception:
             log.exception(f'Error getting user values by id {id} and user id {user_id}')
             return None
 

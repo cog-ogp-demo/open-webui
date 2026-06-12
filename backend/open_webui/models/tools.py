@@ -232,7 +232,7 @@ class ToolsTable:
             async with get_async_db_context(db) as db:
                 tool = await db.get(Tool, id)
                 return tool.valves if tool.valves else {}
-        except Exception as e:
+        except Exception:
             log.exception(f'Error getting tool valves by id {id}')
             return None
 

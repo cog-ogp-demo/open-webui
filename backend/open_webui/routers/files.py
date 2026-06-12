@@ -24,9 +24,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from open_webui.config import BYPASS_ADMIN_ACCESS_CONTROL, STORAGE_LOCAL_CACHE, STORAGE_PROVIDER, UPLOAD_DIR
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.internal.db import get_async_db_context, get_async_session
-from open_webui.models.access_grants import AccessGrants
 from open_webui.models.channels import Channels
-from open_webui.models.chats import Chats
 from open_webui.models.files import (
     FileForm,
     FileListResponse,
@@ -34,7 +32,6 @@ from open_webui.models.files import (
     FileModelResponse,
     Files,
 )
-from open_webui.models.groups import Groups
 from open_webui.models.knowledge import Knowledges
 from open_webui.models.users import Users
 from open_webui.retrieval.vector.async_client import ASYNC_VECTOR_DB_CLIENT
@@ -52,6 +49,16 @@ router = APIRouter()
 
 
 from open_webui.utils.access_control.files import has_access_to_file
+
+
+def _max_upload_bytes(request: Request) -> int | None:
+    """Configured upload limit in bytes (FILE_MAX_SIZE is in MiB), or None."""
+    mb = request.app.state.config.FILE_MAX_SIZE
+    try:
+        return int(mb) * 1024 * 1024 if mb else None
+    except (TypeError, ValueError):
+        return None
+
 
 ############################
 # Upload File
@@ -112,7 +119,7 @@ async def process_uploaded_file(
     file_item,
     file_metadata,
     user,
-    db: Optional[AsyncSession] = None,
+    db: AsyncSession | None = None,
 ):
     async def _process_handler(db_session):
         try:
@@ -220,7 +227,7 @@ async def upload_file(
     request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    metadata: Optional[dict | str] = Form(None),
+    metadata: dict | str | None = Form(None),
     process: bool = Query(True),
     process_in_background: bool = Query(True),
     user=Depends(get_verified_user),
@@ -241,12 +248,13 @@ async def upload_file(
 async def upload_file_handler(
     request: Request,
     file: UploadFile = File(...),
-    metadata: Optional[dict | str] = Form(None),
+    metadata: dict | str | None = Form(None),
     process: bool = Query(True),
     process_in_background: bool = Query(True),
     user=Depends(get_verified_user),
-    background_tasks: Optional[BackgroundTasks] = None,
-    db: Optional[AsyncSession] = None,
+    background_tasks: BackgroundTasks | None = None,
+    db: AsyncSession | None = None,
+    enforce_max_size: bool = True,
 ):
     log.info(f'file.content_type: {file.content_type} {process}')
 
@@ -279,6 +287,15 @@ async def upload_file_handler(
                     detail=ERROR_MESSAGES.DEFAULT(f'File type {file_extension} is not allowed'),
                 )
 
+        # Enforce the upload limit server-side (clients check it client-side
+        # only); skipped for server-generated files.
+        max_file_size = _max_upload_bytes(request) if enforce_max_size else None
+        if max_file_size and file.size is not None and file.size > max_file_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=ERROR_MESSAGES.FILE_TOO_LARGE(size=f'{max_file_size // (1024 * 1024)} MB'),
+            )
+
         # replace filename with uuid
         id = str(uuid.uuid4())
         name = filename
@@ -294,6 +311,17 @@ async def upload_file_handler(
                 'OpenWebUI-File-Id': id,
             },
         )
+
+        # Backstop for when the parser didn't populate file.size.
+        if max_file_size and len(contents) > max_file_size:
+            try:
+                await asyncio.to_thread(Storage.delete_file, file_path)
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=ERROR_MESSAGES.FILE_TOO_LARGE(size=f'{max_file_size // (1024 * 1024)} MB'),
+            )
 
         # SHA-256 of raw uploaded bytes for incremental sync diffing.
         # If the client pre-computed and sent file_hash, use that.
@@ -605,6 +633,13 @@ async def update_file_data_content_by_id(
         )
 
     if file.user_id == user.id or user.role == 'admin' or await has_access_to_file(id, 'write', user, db=db):
+        # Direct content writes must respect the upload limit too.
+        max_file_size = _max_upload_bytes(request)
+        if max_file_size and len(form_data.content.encode('utf-8')) > max_file_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=ERROR_MESSAGES.FILE_TOO_LARGE(size=f'{max_file_size // (1024 * 1024)} MB'),
+            )
         try:
             await process_file(
                 request,

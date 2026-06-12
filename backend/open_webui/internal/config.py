@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime
 from functools import reduce
-from typing import Any, Optional, Union
+from typing import Any
 
 import redis
 from open_webui.internal.db import Base, get_async_db, get_db
@@ -185,8 +185,8 @@ class AppConfig:
     def __init__(
         self,
         *,
-        redis_url: Optional[str] = None,
-        redis_sentinels: Optional[list] = None,
+        redis_url: str | None = None,
+        redis_sentinels: list | None = None,
         redis_cluster: bool = False,
         redis_key_prefix: str = 'open-webui',
     ) -> None:
@@ -200,7 +200,7 @@ class AppConfig:
 
             redis_sentinels = get_sentinels_from_env(REDIS_SENTINEL_HOSTS, REDIS_SENTINEL_PORT)
 
-        rc: Union[redis.Redis, redis.cluster.RedisCluster, None] = None
+        rc: redis.Redis | redis.cluster.RedisCluster | None = None
         if redis_url:
             rc = get_redis_connection(redis_url, redis_sentinels or [], redis_cluster, decode_responses=True)
         super().__setattr__('_rc', rc)

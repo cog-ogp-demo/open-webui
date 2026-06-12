@@ -8,16 +8,13 @@ import time
 import urllib
 import uuid
 from ssl import CERT_NONE, CERT_REQUIRED, PROTOCOL_TLS
-from typing import List, Optional
 
 from aiohttp import ClientSession
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, Response
 from ldap3 import NONE, Connection, Server, Tls
 from ldap3.utils.conv import escape_filter_chars
 from open_webui.config import (
-    ENABLE_LDAP,
-    ENABLE_OAUTH_SIGNUP,
     ENABLE_PASSWORD_AUTH,
     OAUTH_MERGE_ACCOUNTS_BY_EMAIL,
     OAUTH_PROVIDERS,
@@ -116,7 +113,7 @@ async def create_session_response(
     )
 
     if set_cookie and response:
-        datetime_expires_at = datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc) if expires_at else None
+        datetime_expires_at = datetime.datetime.fromtimestamp(expires_at, datetime.UTC) if expires_at else None
         max_age = int(expires_delta.total_seconds()) if expires_delta else None
         response.set_cookie(
             key='token',
@@ -194,7 +191,7 @@ async def get_session_user(
         response.set_cookie(
             key='token',
             value=token,
-            expires=(datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc) if expires_at else None),
+            expires=(datetime.datetime.fromtimestamp(expires_at, datetime.UTC) if expires_at else None),
             httponly=True,  # Ensures the cookie is not accessible via JavaScript
             samesite=WEBUI_AUTH_COOKIE_SAME_SITE,
             secure=WEBUI_AUTH_COOKIE_SECURE,
@@ -588,7 +585,7 @@ async def signin(
             name = request.headers.get(WEBUI_AUTH_TRUSTED_NAME_HEADER, email)
             try:
                 name = urllib.parse.unquote(name, encoding='utf-8')
-            except Exception as e:
+            except Exception:
                 pass
 
         if not await Users.get_user_by_email(email.lower(), db=db):
@@ -1348,7 +1345,7 @@ async def token_exchange(
     # Get sub claim
     sub = user_data.get(request.app.state.config.OAUTH_SUB_CLAIM or OAUTH_PROVIDERS[provider].get('sub_claim', 'sub'))
     if not sub:
-        log.warning(f'Token exchange failed: sub claim missing from user data')
+        log.warning('Token exchange failed: sub claim missing from user data')
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Token missing required 'sub' claim",
@@ -1356,7 +1353,7 @@ async def token_exchange(
 
     email = user_data.get(email_claim, '')
     if not email:
-        log.warning(f'Token exchange failed: email claim missing from user data')
+        log.warning('Token exchange failed: email claim missing from user data')
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Token missing required email claim',
@@ -1368,7 +1365,7 @@ async def token_exchange(
         '*' not in auth_manager_config.OAUTH_ALLOWED_DOMAINS
         and email.split('@')[-1] not in auth_manager_config.OAUTH_ALLOWED_DOMAINS
     ):
-        log.warning(f'Token exchange denied: email domain not in allowed domains list')
+        log.warning('Token exchange denied: email domain not in allowed domains list')
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
