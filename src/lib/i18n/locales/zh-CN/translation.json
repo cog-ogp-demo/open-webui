@@ -2348,5 +2348,13 @@
 	"Your usage stats have been successfully synced.": "已成功同步您的使用统计数据。",
 	"YouTube": "YouTube",
 	"Youtube Language": "Youtube 语言",
-	"Youtube Proxy URL": "Youtube 代理地址"
+	"Youtube Proxy URL": "Youtube 代理地址",
+	"Couldn't find your language?": "找不到你的语言？",
+	"Help us translate Open WebUI!": "帮助我们翻译 Open WebUI！",
+	"Emoji graphics provided by": "Emoji 图形由",
+	", licensed under": "，基于",
+	"Copyright (c)": "版权所有 (c)",
+	"All rights reserved.": "保留所有权利。",
+	"license purchased by": "许可证购买者",
+	"Successfully imported {{count}} chats.": "成功导入了 {{count}} 个对话。"
 }
