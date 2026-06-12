@@ -30,6 +30,7 @@
 
 	let responseAutoCopy = false;
 	let widescreenMode = false;
+	let showMessageTimestamps = false;
 	let splitLargeChunks = false;
 	let scrollOnBranchChange = true;
 	let userLocation = false;
@@ -242,6 +243,7 @@
 		landingPageMode = $settings?.landingPageMode ?? '';
 		chatBubble = $settings?.chatBubble ?? true;
 		widescreenMode = $settings?.widescreenMode ?? false;
+		showMessageTimestamps = $settings?.showMessageTimestamps ?? false;
 		splitLargeChunks = $settings?.splitLargeChunks ?? false;
 		scrollOnBranchChange = $settings?.scrollOnBranchChange ?? true;
 
@@ -734,6 +736,25 @@
 							bind:state={widescreenMode}
 							on:change={() => {
 								saveSettings({ widescreenMode });
+							}}
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div>
+				<div class=" py-0.5 flex w-full justify-between">
+					<div id="show-message-timestamps-label" class=" self-center text-xs">
+						{$i18n.t('Show Message Timestamps')}
+					</div>
+
+					<div class="flex items-center gap-2 p-1">
+						<Switch
+							ariaLabelledbyId="show-message-timestamps-label"
+							tooltip={true}
+							bind:state={showMessageTimestamps}
+							on:change={() => {
+								saveSettings({ showMessageTimestamps });
 							}}
 						/>
 					</div>
