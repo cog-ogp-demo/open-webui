@@ -104,11 +104,20 @@
 				{/if}
 			</div>
 
-			<button
-				class="relative flex items-center gap-1 rounded-xl p-2 text-left flex-1 justify-between"
-				type="button"
+			<div
+				class="relative flex items-center gap-1 rounded-xl p-2 text-left flex-1 justify-between cursor-pointer"
+				role="button"
+				tabindex="0"
 				on:click={() => {
+					if (editingFileId === (file?.id ?? file?.tempId)) return;
 					onClick(file?.id ?? file?.tempId);
+				}}
+				on:keydown={(e) => {
+					if (e.target !== e.currentTarget) return;
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						onClick(file?.id ?? file?.tempId);
+					}
 				}}
 				on:dblclick={() => {
 					if (knowledge?.write_access) startRename(file);
@@ -166,7 +175,7 @@
 						</Tooltip>
 					{/if}
 				</div>
-			</button>
+			</div>
 
 			{#if knowledge?.write_access}
 				<div class="flex items-center">

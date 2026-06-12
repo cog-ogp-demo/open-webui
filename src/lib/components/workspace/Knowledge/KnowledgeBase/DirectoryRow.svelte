@@ -113,10 +113,21 @@
 		</button>
 	</div>
 
-	<button
-		class="relative flex items-center gap-1 rounded-xl p-2 text-left flex-1 justify-between"
-		type="button"
-		on:click={() => onNavigate(directory.id)}
+	<div
+		class="relative flex items-center gap-1 rounded-xl p-2 text-left flex-1 justify-between cursor-pointer"
+		role="button"
+		tabindex="0"
+		on:click={() => {
+			if (editing) return;
+			onNavigate(directory.id);
+		}}
+		on:keydown={(e) => {
+			if (e.target !== e.currentTarget) return;
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				onNavigate(directory.id);
+			}
+		}}
 	>
 		<div>
 			<div class="flex gap-2 items-center line-clamp-1">
@@ -151,7 +162,7 @@
 				</Tooltip>
 			{/if}
 		</div>
-	</button>
+	</div>
 
 	{#if writeAccess}
 		<div class="flex items-center">
