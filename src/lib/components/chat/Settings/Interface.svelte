@@ -42,6 +42,7 @@
 	let notificationSoundAlways = false;
 
 	let highContrastMode = false;
+	let showMessageTimestamps = false;
 
 	let detectArtifacts = true;
 	let displayMultiModelResponsesInTabs = false;
@@ -204,6 +205,7 @@
 		autoFollowUps = $settings?.autoFollowUps ?? true;
 
 		highContrastMode = $settings?.highContrastMode ?? false;
+		showMessageTimestamps = $settings?.showMessageTimestamps ?? false;
 
 		detectArtifacts = $settings?.detectArtifacts ?? true;
 		responseAutoCopy = $settings?.responseAutoCopy ?? false;
@@ -449,6 +451,25 @@
 							bind:state={showChatTitleInTab}
 							on:change={() => {
 								saveSettings({ showChatTitleInTab });
+							}}
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div>
+				<div class=" py-0.5 flex w-full justify-between">
+					<div id="show-message-timestamps-label" class=" self-center text-xs">
+						{$i18n.t('Show Message Timestamps')}
+					</div>
+
+					<div class="flex items-center gap-2 p-1">
+						<Switch
+							ariaLabelledbyId="show-message-timestamps-label"
+							tooltip={true}
+							bind:state={showMessageTimestamps}
+							on:change={() => {
+								saveSettings({ showMessageTimestamps });
 							}}
 						/>
 					</div>
