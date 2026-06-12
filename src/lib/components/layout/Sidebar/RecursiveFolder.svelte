@@ -523,6 +523,7 @@
 				}}
 				on:click={async (e) => {
 					(e) => e.stopPropagation();
+					if (edit) return;
 					if (clickTimer) {
 						clearTimeout(clickTimer);
 						clickTimer = null;
@@ -602,6 +603,7 @@
 								e.stopPropagation();
 							}}
 							on:keydown={(e) => {
+								e.stopPropagation();
 								if (e.key === 'Enter') {
 									updateHandler({ name });
 									edit = false;
