@@ -1,0 +1,44 @@
+name: Deploy to staging
+
+on:
+  push:
+    branches:
+      - 'staging'
+
+jobs:
+  build-and-deploy:
+    name: ${{ matrix.variant.name }}
+    strategy:
+      matrix:
+        variant:
+          - name: gogov
+            asset_variant: gov
+            dd_service: go-gov
+            serverless_service: gogovsg
+            eb_env: go-staging
+            use_existing_version: false
+          - name: edu
+            asset_variant: edu
+            dd_service: go-edu
+            serverless_service: edu
+            eb_env: edu-staging
+            use_existing_version: true
+          - name: health
+            asset_variant: health
+            dd_service: go-health
+            serverless_service: health
+            eb_env: health-staging
+            use_existing_version: true
+    uses: ./.github/workflows/build-and-deploy.yml
+    with:
+      asset_variant: ${{ matrix.variant.asset_variant }}
+      dd_service: ${{ matrix.variant.dd_service }}
+      serverless_service: ${{ matrix.variant.serverless_service }}
+      eb_app: gosg-stag
+      eb_env: ${{ matrix.variant.eb_env }}
+      branch_env: staging
+      use_existing_version: ${{ matrix.variant.use_existing_version }}
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      DD_API_KEY: ${{ secrets.DD_API_KEY }}
