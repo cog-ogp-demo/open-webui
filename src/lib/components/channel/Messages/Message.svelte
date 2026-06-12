@@ -397,7 +397,7 @@
 
 						{#if message.created_at}
 							<div
-								class="mt-1.5 flex shrink-0 items-center text-xs self-center invisible group-hover:visible text-gray-500 font-medium first-letter:capitalize"
+								class="mt-1.5 flex shrink-0 items-center text-xs self-center {($settings?.showMessageTimestamps ?? false) ? '' : 'invisible group-hover:visible'} text-gray-500 font-medium first-letter:capitalize"
 							>
 								<Tooltip content={dayjs(message.created_at / 1000000).format('LLLL')}>
 									{dayjs(message.created_at / 1000000).format('HH:mm')}
