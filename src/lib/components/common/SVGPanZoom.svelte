@@ -32,7 +32,7 @@
 	};
 </script>
 
-<div class="relative {className}">
+<div class="relative svg-pan-zoom {className}">
 	<PanzoomContainer
 		bind:this={panzoomRef}
 		className="flex h-full max-h-full justify-center items-center"
