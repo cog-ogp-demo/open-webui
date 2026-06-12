@@ -1999,6 +1999,100 @@ export const renderMermaidDiagram = async (
 	}
 };
 
+const svgToPngDataUrl = async (
+	svgElement: SVGSVGElement,
+	width: number,
+	height: number
+): Promise<string> => {
+	const svgClone = svgElement.cloneNode(true) as SVGSVGElement;
+	svgClone.setAttribute('width', `${width}`);
+	svgClone.setAttribute('height', `${height}`);
+	if (!svgClone.getAttribute('xmlns')) {
+		svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+	}
+
+	const svgString = new XMLSerializer().serializeToString(svgClone);
+	const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+
+	const image = new Image();
+	await new Promise((resolve, reject) => {
+		image.onload = resolve;
+		image.onerror = reject;
+		image.src = svgDataUrl;
+	});
+
+	const scale = 2;
+	const canvas = document.createElement('canvas');
+	canvas.width = Math.max(1, Math.round(width * scale));
+	canvas.height = Math.max(1, Math.round(height * scale));
+	const ctx = canvas.getContext('2d');
+	if (!ctx) {
+		throw new Error('Failed to get canvas context');
+	}
+	ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+	return canvas.toDataURL('image/png');
+};
+
+// Waits until the container's DOM stops mutating (e.g. async Mermaid/Vega
+// renders have completed) before it is cloned for export.
+export const waitForRenderSettled = async (
+	element: HTMLElement,
+	{ interval = 200, timeout = 5000 } = {}
+) => {
+	const start = Date.now();
+	let lastHTML = element.innerHTML;
+	while (Date.now() - start < timeout) {
+		await new Promise((resolve) => setTimeout(resolve, interval));
+		const currentHTML = element.innerHTML;
+		if (currentHTML === lastHTML) {
+			return;
+		}
+		lastHTML = currentHTML;
+	}
+};
+
+// Prepares a cloned, laid-out messages container for html2canvas capture:
+// strips interactive message action buttons and rasterizes rendered SVG
+// diagrams (e.g. Mermaid, Vega), which html2canvas cannot capture reliably.
+export const preparePdfExportClone = async (clonedElement: HTMLElement) => {
+	clonedElement.querySelectorAll('.buttons').forEach((el) => el.remove());
+	clonedElement.querySelectorAll('button').forEach((el) => el.remove());
+
+	const diagramContainers = Array.from(
+		clonedElement.querySelectorAll<HTMLElement>('.svg-pan-zoom')
+	);
+
+	for (const container of diagramContainers) {
+		// Undo any pan/zoom transform so the diagram is captured at its natural position
+		container.querySelectorAll<HTMLElement>('[style*="transform"]').forEach((el) => {
+			el.style.transform = '';
+		});
+	}
+
+	await Promise.all(
+		diagramContainers.flatMap((container) =>
+			Array.from(container.querySelectorAll('svg')).map(async (svgElement) => {
+				const rect = svgElement.getBoundingClientRect();
+				if (rect.width < 1 || rect.height < 1) {
+					return;
+				}
+
+				try {
+					const dataUrl = await svgToPngDataUrl(svgElement, rect.width, rect.height);
+					const img = document.createElement('img');
+					img.src = dataUrl;
+					img.style.width = `${rect.width}px`;
+					img.style.height = `${rect.height}px`;
+					svgElement.replaceWith(img);
+				} catch (error) {
+					console.error('Failed to rasterize SVG for PDF export', error);
+				}
+			})
+		)
+	);
+};
+
 export const renderVegaVisualization = async (spec: string, i18n?: any) => {
 	const vega = await import('vega');
 	const parsedSpec = JSON.parse(spec);

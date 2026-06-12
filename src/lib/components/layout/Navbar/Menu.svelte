@@ -6,7 +6,12 @@
 	const { saveAs } = fileSaver;
 
 	import { downloadChatAsPDF } from '$lib/apis/utils';
-	import { copyToClipboard, createMessagesList } from '$lib/utils';
+	import {
+		copyToClipboard,
+		createMessagesList,
+		preparePdfExportClone,
+		waitForRenderSettled
+	} from '$lib/utils';
 
 	import {
 		showControls,
@@ -87,6 +92,9 @@
 			const containerElement = document.getElementById('full-messages-container');
 			if (containerElement) {
 				try {
+					// Wait for async renders (e.g. Mermaid diagrams) to complete before cloning
+					await waitForRenderSettled(containerElement);
+
 					const isDarkMode = document.documentElement.classList.contains('dark');
 					const virtualWidth = 800; // px, fixed width for cloned element
 
@@ -107,6 +115,9 @@
 
 					// Let the browser compute layout for the cloned element
 					await new Promise((r) => requestAnimationFrame(r));
+
+					// Strip action buttons and rasterize SVG diagrams (e.g. Mermaid) for capture
+					await preparePdfExportClone(clonedElement);
 
 					// Render entire content once
 					const canvas = await html2canvas(clonedElement, {
