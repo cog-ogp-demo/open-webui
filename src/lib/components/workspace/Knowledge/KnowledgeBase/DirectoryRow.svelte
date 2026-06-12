@@ -127,11 +127,12 @@
 						bind:value={editName}
 						class="text-sm w-full bg-transparent border-none outline-hidden"
 						on:keydown={(e) => {
-							e.stopPropagation();
 							if (e.key === 'Enter') submitRename();
 							if (e.key === 'Escape') cancelRename();
 						}}
-						on:keyup={(e) => e.stopPropagation()}
+						on:keyup={(e) => {
+							if (e.key === ' ') e.preventDefault();
+						}}
 						on:blur={submitRename}
 						on:click={(e) => e.stopPropagation()}
 						autofocus
