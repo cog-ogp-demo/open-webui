@@ -21,7 +21,7 @@
 		toggleChatPinnedStatusById
 	} from '$lib/apis/chats';
 	import { chats, folders, settings, theme, user } from '$lib/stores';
-	import { createMessagesList } from '$lib/utils';
+	import { createMessagesList, convertSvgsToImages } from '$lib/utils';
 	import { downloadChatAsPDF } from '$lib/apis/utils';
 	import Download from '$lib/components/icons/Download.svelte';
 	import Folder from '$lib/components/icons/Folder.svelte';
@@ -119,6 +119,10 @@
 
 					// Let the browser compute layout for the cloned element
 					await new Promise((r) => requestAnimationFrame(r));
+
+					// Convert inline SVGs (e.g. Mermaid diagrams) to <img> tags
+					// so html2canvas can rasterise them correctly
+					await convertSvgsToImages(clonedElement);
 
 					// Render entire content once
 					const canvas = await html2canvas(clonedElement, {

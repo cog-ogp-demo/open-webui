@@ -6,7 +6,7 @@
 	const { saveAs } = fileSaver;
 
 	import { downloadChatAsPDF } from '$lib/apis/utils';
-	import { copyToClipboard, createMessagesList } from '$lib/utils';
+	import { copyToClipboard, createMessagesList, convertSvgsToImages } from '$lib/utils';
 
 	import {
 		showControls,
@@ -107,6 +107,10 @@
 
 					// Let the browser compute layout for the cloned element
 					await new Promise((r) => requestAnimationFrame(r));
+
+					// Convert inline SVGs (e.g. Mermaid diagrams) to <img> tags
+					// so html2canvas can rasterise them correctly
+					await convertSvgsToImages(clonedElement);
 
 					// Render entire content once
 					const canvas = await html2canvas(clonedElement, {
