@@ -2355,5 +2355,13 @@
 	"Your usage stats have been successfully synced.": "",
 	"YouTube": "",
 	"Youtube Language": "",
-	"Youtube Proxy URL": ""
+	"Youtube Proxy URL": "",
+	"Couldn't find your language?": "",
+	"Help us translate Open WebUI!": "",
+	"Emoji graphics provided by": "",
+	", licensed under": "",
+	"Copyright (c)": "",
+	"All rights reserved.": "",
+	"license purchased by": "",
+	"Successfully imported {{count}} chats.": ""
 }

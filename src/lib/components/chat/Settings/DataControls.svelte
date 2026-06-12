@@ -93,7 +93,7 @@
 			})
 		);
 		if (res) {
-			toast.success(`Successfully imported ${res.length} chats.`);
+			toast.success($i18n.t('Successfully imported {{count}} chats.', { count: res.length }));
 		}
 
 		currentChatPage.set(1);
