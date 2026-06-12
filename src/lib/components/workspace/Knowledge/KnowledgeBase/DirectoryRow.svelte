@@ -116,7 +116,7 @@
 	<button
 		class="relative flex items-center gap-1 rounded-xl p-2 text-left flex-1 justify-between"
 		type="button"
-		on:click={() => onNavigate(directory.id)}
+		on:click={() => { if (!editing) onNavigate(directory.id); }}
 	>
 		<div>
 			<div class="flex gap-2 items-center line-clamp-1">
@@ -130,6 +130,7 @@
 							if (e.key === 'Enter') submitRename();
 							if (e.key === 'Escape') cancelRename();
 						}}
+						on:keyup|stopPropagation
 						on:blur={submitRename}
 						on:click={(e) => e.stopPropagation()}
 						autofocus
