@@ -269,6 +269,18 @@ async def update_folder_is_expanded_by_id(
 ############################
 
 
+async def has_chats_in_folder_tree(folder_id: str, user_id: str, db: AsyncSession) -> bool:
+    """Check if a folder or any of its descendants contain chats."""
+    queue = [folder_id]
+    while queue:
+        current_id = queue.pop()
+        if await Chats.count_chats_by_folder_id_and_user_id(current_id, user_id, db=db):
+            return True
+        subfolders = await Folders.get_folders_by_parent_id_and_user_id(current_id, user_id, db=db)
+        queue.extend(subfolder.id for subfolder in subfolders)
+    return False
+
+
 @router.delete('/{id}')
 async def delete_folder_by_id(
     request: Request,
@@ -277,7 +289,7 @@ async def delete_folder_by_id(
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):
-    if await Chats.count_chats_by_folder_id_and_user_id(id, user.id, db=db):
+    if await has_chats_in_folder_tree(id, user.id, db):
         chat_delete_permission = await has_permission(
             user.id, 'chat.delete', request.app.state.config.USER_PERMISSIONS, db=db
         )
