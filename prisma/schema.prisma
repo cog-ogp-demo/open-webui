@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum UrlState {
+  ACTIVE
+  INACTIVE
+
+  @@map("enum_urls_state")
+}
+
+enum UrlSource {
+  CONSOLE
+  BULK
+  API
+
+  @@map("enum_urls_source")
+}
+
+// ---------- Models ----------
+
+model User {
+  id         Int          @id @default(autoincrement())
+  email      String?      @unique
+  apiKeyHash String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  urls       Url[]
+  urlHistory UrlHistory[]
+  jobs       Job[]
+
+  @@index([apiKeyHash], name: "users_api_key_hash")
+  @@map("users")
+}
+
+model Url {
+  shortUrl           String    @id @map("shortUrl")
+  longUrl            String
+  state              UrlState  @default(ACTIVE)
+  isFile             Boolean   @default(false)
+  contactEmail       String?
+  description        String    @default("")
+  source             UrlSource @default(CONSOLE)
+  tagStrings         String    @default("")
+  safeBrowsingExpiry DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  userId             Int?      @map("userId")
+  user               User?     @relation(fields: [userId], references: [id])
+
+  dailyClicks   DailyClicks[]
+  weekdayClicks WeekdayClicks[]
+  deviceClicks  Devices?
+  urlClicks     UrlClicks?
+  tags          Tag[]           @relation("UrlTags")
+
+  @@index([userId])
+  @@map("urls")
+}
+
+model UrlHistory {
+  id           Int       @id @default(autoincrement())
+  longUrl      String
+  state        UrlState
+  isFile       Boolean
+  contactEmail String?
+  description  String    @default("")
+  source       UrlSource
+  tagStrings   String    @default("")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  urlShortUrl  String
+  userId       Int
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([urlShortUrl])
+  @@map("url_histories")
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  tagKey    String   @unique
+  tagString String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  urls      Url[]    @relation("UrlTags")
+
+  @@map("tags")
+}
+
+model Job {
+  id        Int       @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  status    String    @default("IN_PROGRESS")
+  params    String    @default("{}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  jobItems  JobItem[]
+
+  @@map("jobs")
+}
+
+model JobItem {
+  id        Int      @id @default(autoincrement())
+  params    String   @default("{}")
+  status    String   @default("IN_PROGRESS")
+  message   String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  jobId     Int
+  job       Job      @relation(fields: [jobId], references: [id])
+
+  @@map("job_items")
+}
+
+// ---------- Statistics ----------
+
+model DailyClicks {
+  id        Int      @id @default(autoincrement())
+  shortUrl  String
+  date      DateTime @db.Date
+  clicks    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  url       Url      @relation(fields: [shortUrl], references: [shortUrl])
+
+  @@unique([shortUrl, date])
+  @@map("daily_clicks")
+}
+
+model WeekdayClicks {
+  id        Int      @id @default(autoincrement())
+  shortUrl  String
+  weekday   Int
+  hours     Int
+  clicks    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  url       Url      @relation(fields: [shortUrl], references: [shortUrl])
+
+  @@unique([shortUrl, weekday, hours])
+  @@map("weekday_clicks")
+}
+
+model Devices {
+  id        Int      @id @default(autoincrement())
+  shortUrl  String   @unique
+  mobile    Int      @default(0)
+  tablet    Int      @default(0)
+  desktop   Int      @default(0)
+  others    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  url       Url      @relation(fields: [shortUrl], references: [shortUrl])
+
+  @@map("devices")
+}
+
+model UrlClicks {
+  id        Int      @id @default(autoincrement())
+  shortUrl  String   @unique
+  clicks    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  url       Url      @relation(fields: [shortUrl], references: [shortUrl])
+
+  @@index([clicks])
+  @@map("url_clicks")
+}
