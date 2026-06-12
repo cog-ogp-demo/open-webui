@@ -226,6 +226,7 @@ type Settings = {
 	highContrastMode?: boolean;
 	title?: TitleSettings;
 	showChatTitleInTab?: boolean;
+	showMessageTimestamps?: boolean;
 	splitLargeDeltas?: boolean;
 	chatDirection?: 'LTR' | 'RTL' | 'auto';
 	ctrlEnterToSend?: boolean;
