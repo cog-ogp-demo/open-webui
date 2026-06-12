@@ -53,6 +53,7 @@ class NoteItemResponse(BaseModel):
     title: str
     data: Optional[dict]
     is_pinned: Optional[bool] = False
+    is_favorite: Optional[bool] = False
     updated_at: int
     created_at: int
     user: Optional[UserResponse] = None
@@ -87,12 +88,14 @@ async def get_notes(
     users = {user.id: user for user in await Users.get_users_by_user_ids(user_ids, db=db)}
 
     pinned_note_ids = await Notes.get_pinned_note_ids(user.id, db=db)
+    favorite_note_ids = await Notes.get_favorite_note_ids(user.id, db=db)
 
-    return [
+    items = [
         NoteUserResponse(
             **{
                 **note.model_dump(),
                 'is_pinned': note.id in pinned_note_ids,
+                'is_favorite': note.id in favorite_note_ids,
                 'data': _truncate_note_data(note.data),
                 'user': UserResponse(**users[note.user_id].model_dump()),
             }
@@ -100,6 +103,9 @@ async def get_notes(
         for note in notes
         if note.user_id in users
     ]
+
+    items.sort(key=lambda n: (not n.is_favorite, 0))
+    return items
 
 
 ############################
@@ -189,9 +195,13 @@ async def search_notes(
 
     result = await Notes.search_notes(user.id, filter, skip=skip, limit=limit, db=db)
     pinned_note_ids = await Notes.get_pinned_note_ids(user.id, db=db)
+    favorite_note_ids = await Notes.get_favorite_note_ids(user.id, db=db)
     for note in result.items:
         note.is_pinned = note.id in pinned_note_ids
+        note.is_favorite = note.id in favorite_note_ids
         note.data = _truncate_note_data(note.data)
+
+    result.items.sort(key=lambda n: (not n.is_favorite, 0))
     return result
 
 
@@ -288,8 +298,9 @@ async def get_note_by_id(
     )
 
     pinned_note_ids = await Notes.get_pinned_note_ids(user.id, db=db)
+    favorite_note_ids = await Notes.get_favorite_note_ids(user.id, db=db)
     return NoteResponse(
-        **{**note.model_dump(), 'is_pinned': note.id in pinned_note_ids},
+        **{**note.model_dump(), 'is_pinned': note.id in pinned_note_ids, 'is_favorite': note.id in favorite_note_ids},
         write_access=write_access,
     )
 
@@ -343,7 +354,9 @@ async def update_note_by_id(
     try:
         note = await Notes.update_note_by_id(id, form_data, db=db)
         pinned_note_ids = await Notes.get_pinned_note_ids(user.id, db=db)
+        favorite_note_ids = await Notes.get_favorite_note_ids(user.id, db=db)
         note.is_pinned = note.id in pinned_note_ids
+        note.is_favorite = note.id in favorite_note_ids
 
         await sio.emit(
             'note-events',
@@ -410,7 +423,9 @@ async def update_note_access_by_id(
 
     note = await Notes.get_note_by_id(id, db=db)
     pinned_note_ids = await Notes.get_pinned_note_ids(user.id, db=db)
+    favorite_note_ids = await Notes.get_favorite_note_ids(user.id, db=db)
     note.is_pinned = note.id in pinned_note_ids
+    note.is_favorite = note.id in favorite_note_ids
     return note
 
 
@@ -452,7 +467,53 @@ async def pin_note_by_id(
 
     note = await Notes.toggle_note_pinned_by_id(id, user.id, db=db)
     pinned_note_ids = await Notes.get_pinned_note_ids(user.id, db=db)
+    favorite_note_ids = await Notes.get_favorite_note_ids(user.id, db=db)
     note.is_pinned = note.id in pinned_note_ids
+    note.is_favorite = note.id in favorite_note_ids
+    return note
+
+
+############################
+# FavoriteNoteById
+############################
+
+
+@router.post('/{id}/favorite', response_model=Optional[NoteModel])
+async def favorite_note_by_id(
+    request: Request,
+    id: str,
+    user=Depends(get_verified_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    if user.role != 'admin' and not await has_permission(
+        user.id, 'features.notes', request.app.state.config.USER_PERMISSIONS, db=db
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=ERROR_MESSAGES.UNAUTHORIZED,
+        )
+
+    note = await Notes.get_note_by_id(id, db=db)
+    if not note:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_MESSAGES.NOT_FOUND)
+
+    if user.role != 'admin' and (
+        user.id != note.user_id
+        and not await AccessGrants.has_access(
+            user_id=user.id,
+            resource_type='note',
+            resource_id=note.id,
+            permission='read',
+            db=db,
+        )
+    ):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ERROR_MESSAGES.DEFAULT())
+
+    note = await Notes.toggle_note_favorite_by_id(id, user.id, db=db)
+    pinned_note_ids = await Notes.get_pinned_note_ids(user.id, db=db)
+    favorite_note_ids = await Notes.get_favorite_note_ids(user.id, db=db)
+    note.is_pinned = note.id in pinned_note_ids
+    note.is_favorite = note.id in favorite_note_ids
     return note
 
 

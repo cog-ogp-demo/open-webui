@@ -38,6 +38,7 @@
 		getNoteList,
 		searchNotes,
 		toggleNotePinnedStatusById,
+		toggleNoteFavoriteStatusById,
 		getPinnedNoteList
 	} from '$lib/apis/notes';
 	import { capitalizeFirstLetter, copyToClipboard, getTimeRange } from '$lib/utils';
@@ -47,6 +48,8 @@
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import Search from '../icons/Search.svelte';
 	import Plus from '../icons/Plus.svelte';
+	import Star from '../icons/Star.svelte';
+	import StarSolid from '../icons/StarSolid.svelte';
 	import ChevronRight from '../icons/ChevronRight.svelte';
 	import Spinner from '../common/Spinner.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
@@ -519,6 +522,23 @@
 																	</div>
 																</Tooltip>
 
+																<Tooltip content={note.is_favorite ? $i18n.t('Unfavorite') : $i18n.t('Favorite')}>
+																	<button
+																		class="self-center w-fit text-sm p-1 rounded-xl transition {note.is_favorite ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-500'}"
+																		type="button"
+																		on:click|preventDefault|stopPropagation={async () => {
+																			await toggleNoteFavoriteStatusById(localStorage.token, note.id);
+																			init();
+																		}}
+																	>
+																		{#if note.is_favorite}
+																			<StarSolid className="size-4" />
+																		{:else}
+																			<Star className="size-4" />
+																		{/if}
+																	</button>
+																</Tooltip>
+
 																<div>
 																	<NoteMenu
 																		onDownload={(type) => {
@@ -589,7 +609,24 @@
 																	{note.title}
 																</div>
 
-																<div>
+																<div class="flex items-center">
+																	<Tooltip content={note.is_favorite ? $i18n.t('Unfavorite') : $i18n.t('Favorite')}>
+																		<button
+																			class="self-center w-fit text-sm p-1 rounded-xl transition {note.is_favorite ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-500'}"
+																			type="button"
+																			on:click|preventDefault|stopPropagation={async () => {
+																				await toggleNoteFavoriteStatusById(localStorage.token, note.id);
+																				init();
+																			}}
+																		>
+																			{#if note.is_favorite}
+																				<StarSolid className="size-4" />
+																			{:else}
+																				<Star className="size-4" />
+																			{/if}
+																		</button>
+																	</Tooltip>
+
 																	<NoteMenu
 																		onDownload={(type) => {
 																			selectedNote = note;

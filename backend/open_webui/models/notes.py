@@ -41,6 +41,7 @@ class NoteModel(BaseModel):
     data: Optional[dict] = None
     meta: Optional[dict] = None
     is_pinned: Optional[bool] = False
+    is_favorite: Optional[bool] = False
 
     access_grants: list[AccessGrantModel] = Field(default_factory=list)
 
@@ -50,6 +51,15 @@ class NoteModel(BaseModel):
 
 class PinnedNote(Base):
     __tablename__ = 'pinned_note'
+
+    id = Column(Text, primary_key=True)
+    user_id = Column(Text, nullable=False)
+    note_id = Column(Text, ForeignKey('note.id', ondelete='CASCADE'), nullable=False)
+    created_at = Column(BigInteger, nullable=False)
+
+
+class FavoriteNote(Base):
+    __tablename__ = 'favorite_note'
 
     id = Column(Text, primary_key=True)
     user_id = Column(Text, nullable=False)
@@ -85,6 +95,7 @@ class NoteItemResponse(BaseModel):
     title: str
     data: Optional[dict]
     is_pinned: Optional[bool] = False
+    is_favorite: Optional[bool] = False
     updated_at: int
     created_at: int
     user: Optional[UserResponse] = None
@@ -376,6 +387,7 @@ class NoteTable:
             async with get_async_db_context(db) as db:
                 await AccessGrants.revoke_all_access('note', id, db=db)
                 await db.execute(delete(PinnedNote).filter(PinnedNote.note_id == id))
+                await db.execute(delete(FavoriteNote).filter(FavoriteNote.note_id == id))
                 await db.execute(delete(Note).filter(Note.id == id))
                 await db.commit()
                 return True
@@ -386,6 +398,61 @@ class NoteTable:
         async with get_async_db_context(db) as db:
             result = await db.execute(select(PinnedNote.note_id).filter_by(user_id=user_id))
             return result.scalars().all()
+
+    async def toggle_note_favorite_by_id(
+        self, id: str, user_id: str, db: Optional[AsyncSession] = None
+    ) -> Optional[NoteModel]:
+        try:
+            async with get_async_db_context(db) as db:
+                result = await db.execute(select(Note).filter(Note.id == id))
+                note = result.scalars().first()
+                if not note:
+                    return None
+
+                fav_result = await db.execute(select(FavoriteNote).filter_by(user_id=user_id, note_id=id))
+                favorite = fav_result.scalars().first()
+
+                if favorite:
+                    await db.execute(delete(FavoriteNote).filter_by(user_id=user_id, note_id=id))
+                else:
+                    new_fav = FavoriteNote(
+                        id=str(uuid.uuid4()), user_id=user_id, note_id=id, created_at=int(time.time_ns())
+                    )
+                    db.add(new_fav)
+
+                await db.commit()
+                return await self._to_note_model(note, db=db)
+        except Exception:
+            return None
+
+    async def get_favorite_note_ids(self, user_id: str, db: Optional[AsyncSession] = None) -> list[str]:
+        async with get_async_db_context(db) as db:
+            result = await db.execute(select(FavoriteNote.note_id).filter_by(user_id=user_id))
+            return result.scalars().all()
+
+    async def get_favorite_notes_by_user_id(
+        self,
+        user_id: str,
+        permission: str = 'read',
+        db: Optional[AsyncSession] = None,
+    ) -> list[NoteModel]:
+        async with get_async_db_context(db) as db:
+            user_groups = await Groups.get_groups_by_member_id(user_id, db=db)
+            user_group_ids = [group.id for group in user_groups]
+
+            stmt = (
+                select(Note)
+                .join(FavoriteNote, FavoriteNote.note_id == Note.id)
+                .filter(FavoriteNote.user_id == user_id)
+                .order_by(FavoriteNote.created_at.desc())
+            )
+            stmt = self._has_permission(db, stmt, {'user_id': user_id, 'group_ids': user_group_ids}, permission)
+
+            result = await db.execute(stmt)
+            notes = result.scalars().all()
+            note_ids = [note.id for note in notes]
+            grants_map = await AccessGrants.get_grants_by_resources('note', note_ids, db=db)
+            return [await self._to_note_model(note, access_grants=grants_map.get(note.id, []), db=db) for note in notes]
 
 
 Notes = NoteTable()
