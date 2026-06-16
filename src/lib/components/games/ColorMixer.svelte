@@ -172,10 +172,7 @@
 	{#if showCelebration}
 		<div class="celebration-overlay">
 			{#each particles as p (p.id)}
-				<span
-					class="particle"
-					style="left: {p.x}%; top: {p.y}%; animation-delay: {p.delay}s;"
-				>
+				<span class="particle" style="left: {p.x}%; top: {p.y}%; animation-delay: {p.delay}s;">
 					{p.emoji}
 				</span>
 			{/each}
@@ -262,7 +259,7 @@
 				{/if}
 			</div>
 
-		<!-- Result display -->
+			<!-- Result display -->
 		{:else if mixResult}
 			<div class="result-section">
 				<div class="result-card" style="border-color: {mixResult.hex};">
@@ -273,14 +270,14 @@
 						</h2>
 					</div>
 
-					<div
-						class="result-color-swatch"
-						style="background-color: {mixResult.hex};"
-					>
+					<div class="result-color-swatch" style="background-color: {mixResult.hex};">
 						<span class="swatch-name">{$i18n.t(mixResult.name)}</span>
 					</div>
 
-					<p class="result-subtitle">{$i18n.t('Look! These things are')} <strong style="color: {mixResult.hex};">{$i18n.t(mixResult.name)}</strong>:</p>
+					<p class="result-subtitle">
+						{$i18n.t('Look! These things are')}
+						<strong style="color: {mixResult.hex};">{$i18n.t(mixResult.name)}</strong>:
+					</p>
 
 					<div class="objects-grid">
 						{#each mixResult.objects as obj}
@@ -310,7 +307,14 @@
 		justify-content: center;
 		padding: 1rem;
 		overflow: hidden;
-		background: linear-gradient(135deg, #fef3c7 0%, #fce7f3 25%, #dbeafe 50%, #d1fae5 75%, #fef9c3 100%);
+		background: linear-gradient(
+			135deg,
+			#fef3c7 0%,
+			#fce7f3 25%,
+			#dbeafe 50%,
+			#d1fae5 75%,
+			#fef9c3 100%
+		);
 	}
 
 	:global(.dark) .color-mixer-game {
@@ -635,10 +639,18 @@
 		animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 	}
 
-	.object-card:nth-child(1) { animation-delay: 0.1s; }
-	.object-card:nth-child(2) { animation-delay: 0.2s; }
-	.object-card:nth-child(3) { animation-delay: 0.3s; }
-	.object-card:nth-child(4) { animation-delay: 0.4s; }
+	.object-card:nth-child(1) {
+		animation-delay: 0.1s;
+	}
+	.object-card:nth-child(2) {
+		animation-delay: 0.2s;
+	}
+	.object-card:nth-child(3) {
+		animation-delay: 0.3s;
+	}
+	.object-card:nth-child(4) {
+		animation-delay: 0.4s;
+	}
 
 	.object-emoji {
 		font-size: 3rem;
@@ -699,25 +711,47 @@
 
 	/* Animations */
 	@keyframes wiggle {
-		0%, 100% { transform: rotate(0deg); }
-		25% { transform: rotate(-5deg); }
-		75% { transform: rotate(5deg); }
+		0%,
+		100% {
+			transform: rotate(0deg);
+		}
+		25% {
+			transform: rotate(-5deg);
+		}
+		75% {
+			transform: rotate(5deg);
+		}
 	}
 
 	@keyframes spin {
-		from { transform: rotate(0deg); }
-		to { transform: rotate(360deg); }
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	@keyframes pulse {
-		0%, 100% { transform: scale(1); }
-		50% { transform: scale(1.08); }
+		0%,
+		100% {
+			transform: scale(1);
+		}
+		50% {
+			transform: scale(1.08);
+		}
 	}
 
 	@keyframes bounceIn {
-		0% { transform: scale(0); }
-		60% { transform: scale(1.2); }
-		100% { transform: scale(1); }
+		0% {
+			transform: scale(0);
+		}
+		60% {
+			transform: scale(1.2);
+		}
+		100% {
+			transform: scale(1);
+		}
 	}
 
 	@keyframes fadeInUp {
